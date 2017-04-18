@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<package>
+  <name>arc_lane_following_autopilot</name>
+  <version>0.0.1</version>
+  <description>Lane Detector Package</description>
+  <maintainer email="alaturn@student.ethz.ch">Nikhilesh</maintainer>
+  <license>TODO</license>
+  <url type="website">https://github.com/ProjectARCLaneTracking/lanedetection_using_opencv</url>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>std_msgs</build_depend>
+  <build_depend>catkin_simple</build_depend>
+  <run_depend>roscpp</run_depend>
+  <run_depend>catkin_simple</run_depend>
+  <run_depend>std_msgs</run_depend>
+
+   <build_depend>cv_bridge</build_depend>
+   <run_depend>cv_bridge</run_depend>
+
+   <build_depend>sensor_msgs</build_depend>
+   <run_depend>sensor_msgs</run_depend>
+
+
+  <export>
+  </export>
+
+</package>
