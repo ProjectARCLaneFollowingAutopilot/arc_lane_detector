@@ -6,7 +6,7 @@ find_package(catkin_simple REQUIRED)
 catkin_simple(ALL_DEPS_REQUIRED)
 
 
-cs_add_executable(lane_detector_exec src/main.cpp)
+cs_add_executable(arc_lane_following_autopilot_exec src/main.cpp)
 
 cs_install()
 
