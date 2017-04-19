@@ -36,7 +36,7 @@ int main(int argc, char* argv[])
   ros::init(argc, argv, "arc_lane_following_autopilot");
   ros::NodeHandle n;
 
-  ros::Subscriber sub = n.subscribe("maincamera/image_raw", 10, getImage);
+  ros::Subscriber sub = n.subscribe("/usb_cam/image_raw", 10, getImage);
   ros::spin();
   return 0;
 }
