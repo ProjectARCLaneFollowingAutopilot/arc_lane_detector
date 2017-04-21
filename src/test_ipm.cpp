@@ -1,7 +1,6 @@
 #include <cv.h>
 #include <iostream>
 #include "opencv2/highgui/highgui.hpp"
-#include "sensor_msgs/Image.h"
 #include "../include/inverse_perspective_mapping/inverse_perspective_mapping.hpp"
 
 using namespace cv;
@@ -13,8 +12,7 @@ int main(int argc, char* argv[])
 {
   cout<<"Hallo!"<<endl;
   IPM test_object;
-  test_object.lolol.red = 10;
-  cout<<test_object.lolol.red<<endl;
+
   return 0;
 }
 
