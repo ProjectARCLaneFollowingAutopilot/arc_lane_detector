@@ -33,7 +33,9 @@ class IPM
   // Method to set parameters, such as extrinsic and intrinsic camera parameters and then adjusts the connection_matrix_.
   void setParam(float camera_height_m, float pitch_angle_deg, int focal_length_px, int input_width_px, int input_height_px);
   // Method to set a new input image.
+  void getImage(cv::Mat src);
   // Method which does IPM and returns undistorted, projected image.
+  cv::Mat invPerspectiveMapping();
 
   // PUBLIC MEMBER VARIABLES.
 
