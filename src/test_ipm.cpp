@@ -14,7 +14,7 @@ float focal_length_px = 799.0;
 int main(int argc, char* argv[])
 {
   cout<<"Test application!"<<endl;
-  cv::Mat input_image = cv::imread("/home/nikku/catkin_ws/src/arc_lane_following_autopilot/images/lucerne.jpeg", CV_LOAD_IMAGE_COLOR);
+  cv::Mat input_image = cv::imread("/home/nikku/catkin_ws/src/arc_lane_following_autopilot/images/rect.jpg", CV_LOAD_IMAGE_COLOR);
   // Check for invalid input.
   if(! input_image.data )
   {
@@ -27,7 +27,8 @@ int main(int argc, char* argv[])
   IPM test_object;
   test_object.IPM::getImage(input_image);
   test_object.IPM::setParam(camera_height, pitch_angle, focal_length_px, input_image.cols, input_image.rows);
-
+  test_object.IPM::invPerspectiveMapping();
+  test_object.IPM::~IPM();
   //cv::Mat dst = test_object.IPM::invPerspectiveMapping();
 
   /* Try out perspective Transformation methods of opencv.

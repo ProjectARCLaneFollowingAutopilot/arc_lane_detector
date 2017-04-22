@@ -34,6 +34,7 @@ void IPM::setParam(float camera_height_m, float pitch_angle_deg, float focal_len
   this->focal_length_px_ = focal_length_px;
   this->input_width_px_ = input_width_px;
   this->input_height_px_ = input_height_px;
+  this->output_img_ = (this->input_img_).clone();
 
   this->setTransformationMatrix();
 }
@@ -48,6 +49,26 @@ void IPM::getImage(cv::Mat src)
 cv::Mat IPM::invPerspectiveMapping()
 {
   // Run cv::perspectiveProjection to get transformed image.
+  std::cout<<"IPM got called"<<std::endl;
+  cv::warpPerspective(this->input_img_, this->output_img_, this->perspective_transform_, (this->output_img_).size());
+
+  if(! input_img_.data )
+  {
+    std::cout <<  "Could not open or find the input image" << std::endl ;
+  }
+
+  if(! input_img_.data )
+  {
+    std::cout <<  "Could not open or find the output image" << std::endl ;
+  }
+
+  std::cout<<"Image was warped"<<std::endl;
+  cv::namedWindow("Input", CV_WINDOW_AUTOSIZE);
+  cv::namedWindow("Output", CV_WINDOW_AUTOSIZE);
+  std::cout<<"Windows were created"<<std::endl;
+  cv::imshow("Input", this->input_img_);
+  cv::imshow("Output", this->output_img_);
+  cv::waitKey(0);
 }
 
 // Private member methods.
@@ -100,5 +121,6 @@ void IPM::setTransformationMatrix()
 
   // From this get the transformation matrix and then store it.
   this->perspective_transform_ = cv::getPerspectiveTransform(this->src_points_, this->dst_points_);
+  std::cout<<perspective_transform_<<std::endl;
 
 }

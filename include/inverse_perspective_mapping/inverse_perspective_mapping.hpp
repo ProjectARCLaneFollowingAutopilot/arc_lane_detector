@@ -18,7 +18,6 @@ const float PI = 3.14159265;
 class IPM
 {
   public:
-
   // PUBLIC MEMBER METHODS.
   // Default constructor.
   IPM();
@@ -35,7 +34,6 @@ class IPM
 
 
   private:
-
   // Private member methods.
   // Method which prompts the user to calibrate the transformation matrix by assigning four pixel each in an image.
   void setTransformationMatrix();
