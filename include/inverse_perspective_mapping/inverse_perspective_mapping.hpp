@@ -5,14 +5,14 @@ and return a non-distorted image projected on the ground plane.
 In order to work, the position and orientation of the camera w.r.t the ground plane has to be known.
 */
 #include <cv.h>
-#include "opencv2/highgui/highgui.hpp"
 #include <iostream>
-#include <cmath>
+#include "opencv2/highgui/highgui.hpp"
 
+// GENERAL FUNCTIONS.
 // Callback function for setMouseCallback and returns the point clicked on.
 void getClickedPixel(int event, int x, int y, int flags, void *ptr);
 
-// Constants.
+// CONSTANTS.
 const float PI = 3.14159265;
 
 class IPM
@@ -32,13 +32,12 @@ class IPM
 
   // PUBLIC MEMBER VARIABLES.
 
-
   private:
-  // Private member methods.
-  // Method which prompts the user to calibrate the transformation matrix by assigning four pixel each in an image.
+  // PRIVATE MEMBER METHODS.
+  // Method which prompts the user to calibrate the transformation matrix by assigning four pixel each in two images image.
   void setTransformationMatrix();
 
-  // Private member variables.
+  // PRIVATE MEMBER VARIABLES.
   // Input image, which is perspectively distorted.
   cv::Mat input_img_;
   // Output image, which is undistorted and projected on the ground plane.
@@ -60,9 +59,12 @@ class IPM
   // Matrix to store the homography matrix.
   cv::Mat perspective_transform_;
 
-
 };
 
 /* Used codes
 http://opencvexamples.blogspot.com/2014/01/detect-mouse-clicks-and-moves-on-image.html
+http://docs.opencv.org/2.4/modules/core/doc/basic_structures.html
+http://answers.opencv.org/question/33756/destroy-a-mousecallback/
+http://opencvexamples.blogspot.com/2014/01/perspective-transform.html
+http://docs.opencv.org/2.4/modules/imgproc/doc/geometric_transformations.html#Mat%20getPerspectiveTransform(InputArray%20src,%20InputArray%20dst)
 */
