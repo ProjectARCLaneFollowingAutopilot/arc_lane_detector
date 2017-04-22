@@ -56,11 +56,11 @@ class IPM
   // Height of input image (in pixels).
   int input_height_px_;
   // Vector to store the points in the input image for finding the homography.
-  cv::Point2f src_points[4];
+  cv::Point2f src_points_[4];
   // Vector to store the points in the output image for finding the homography.
-  cv::Point2f dst_points[4];
+  cv::Point2f dst_points_[4];
   // Matrix to store the homography matrix.
-  cv::Mat perspective_transform;
+  cv::Mat perspective_transform_;
 
 
 };

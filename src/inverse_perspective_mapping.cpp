@@ -4,12 +4,10 @@
 // Callback function to detect if a pixel was clicked and to return the clicked on pixel.
 void getClickedPixel(int event, int x, int y, int flags, void *ptr)
 {
-  std::cout<<"Callback function called"<<std::endl;
   if(event == cv::EVENT_LBUTTONDOWN)
   {
+    std::cout<<"CLICK"<<std::endl;
     cv::Point2f *p = (cv::Point2f*)ptr;
-    std::cout<<"x: "<<x<<std::endl;
-    std::cout<<"y: "<<y<<std::endl;
     p->x = x;
     p->y = y;
   }
@@ -63,21 +61,44 @@ void IPM::setTransformationMatrix()
   cv::Point2f p;
   cv::namedWindow("Display", CV_WINDOW_AUTOSIZE);
 
+  std::cout<<"Selecting Input Points"<<std::endl;
   for(int i=0; i<4; i++)
   {
+    std::cout<<"Point: "<<i+1<<" out of "<<4<<std::endl;
+    std::cout<<"You have now 5 sec to click on your point"<<std::endl;
     cv::imshow("Display", input_img_);
     cv::setMouseCallback("Display", getClickedPixel, &p);
+    // cv::setMouseCallback("Display", NULL, NULL);
+    cv::waitKey(5000);
+    std::cout<<"Saved pixels: "<<std::endl;
     std::cout<<p<<std::endl;
-    cv::waitKey(10000);
-    std::cout<<i<<std::endl;
+    this->src_points_[i] = p;
   }
 
-  // Close the window.
-  // Store the clicked on pixels to src_points[4].
-  // Close window as soon as four points have been clicked.
-  // Open another window.
-  // Show image of same dimensions as input image.
-  // User shall click on two points (diagonal), from which rectangle will be found and pixels stored to dst_points[4].
-  // Close window, as soon as two points have been clicked.
+  std::cout<<"Input Points saved!"<<std::endl;
+
+  cv::Point2f diagonal_elements[2];
+
+  std::cout<<"Selecting Output Points"<<std::endl;
+  for(int i=0; i<2; i++)
+  {
+    std::cout<<"Point: "<<i+1<<" out of "<<2<<std::endl;
+    std::cout<<"You have now 5 sec to click on your point"<<std::endl;
+    cv::imshow("Display", output_img_);
+    cv::setMouseCallback("Display", getClickedPixel, &p);
+    cv::waitKey(5000);
+    std::cout<<"Saved pixels: "<<std::endl;
+    std::cout<<p<<std::endl;
+    diagonal_elements[i] = p;
+  }
+  this->dst_points_[0] = diagonal_elements[0];
+  (this->dst_points_[1]).x = diagonal_elements[1].x;
+  (this->dst_points_[1]).y = diagonal_elements[0].x;
+  (this->dst_points_[2]).x = diagonal_elements[0].x;
+  (this->dst_points_[2]).x = diagonal_elements[1].y;
+  this->dst_points_[3] = diagonal_elements[1];
+
   // From this get the transformation matrix and then store it.
+  this->perspective_transform_ = cv::getPerspectiveTransform(this->src_points_, this->dst_points_);
+
 }
