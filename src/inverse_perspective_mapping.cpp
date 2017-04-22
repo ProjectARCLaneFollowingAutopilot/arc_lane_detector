@@ -48,24 +48,22 @@ void IPM::getImage(cv::Mat src)
 // Method which does IPM and returns undistorted, projected image.
 cv::Mat IPM::invPerspectiveMapping()
 {
+
+  for(int i = 0; i<4;i++)
+  {
+    std::cout<<"Point "<<i+1<<"from Input= "<<src_points_[i]<<std::endl;
+  }
+  for(int i = 0; i<4;i++)
+  {
+    std::cout<<"Point "<<i+1<<"from Output= "<<dst_points_[i]<<std::endl;
+  }
   // Run cv::perspectiveProjection to get transformed image.
   std::cout<<"IPM got called"<<std::endl;
   cv::warpPerspective(this->input_img_, this->output_img_, this->perspective_transform_, (this->output_img_).size());
 
-  if(! input_img_.data )
-  {
-    std::cout <<  "Could not open or find the input image" << std::endl ;
-  }
-
-  if(! input_img_.data )
-  {
-    std::cout <<  "Could not open or find the output image" << std::endl ;
-  }
-
   std::cout<<"Image was warped"<<std::endl;
   cv::namedWindow("Input", CV_WINDOW_AUTOSIZE);
   cv::namedWindow("Output", CV_WINDOW_AUTOSIZE);
-  std::cout<<"Windows were created"<<std::endl;
   cv::imshow("Input", this->input_img_);
   cv::imshow("Output", this->output_img_);
   cv::waitKey(0);
@@ -116,7 +114,7 @@ void IPM::setTransformationMatrix()
   (this->dst_points_[1]).x = diagonal_elements[1].x;
   (this->dst_points_[1]).y = diagonal_elements[0].x;
   (this->dst_points_[2]).x = diagonal_elements[0].x;
-  (this->dst_points_[2]).x = diagonal_elements[1].y;
+  (this->dst_points_[2]).y = diagonal_elements[1].y;
   this->dst_points_[3] = diagonal_elements[1];
 
   // From this get the transformation matrix and then store it.
