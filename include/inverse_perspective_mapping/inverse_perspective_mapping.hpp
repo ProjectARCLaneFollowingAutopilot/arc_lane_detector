@@ -33,7 +33,7 @@ class IPM
   IPM();
   // Default destructor.
   ~IPM();
-  // Method to set parameters, such as extrinsic and intrinsic camera parameters and then adjusts the connection_matrix_.
+  // Method to set parameters, such as extrinsic and intrinsic camera parameters and then finds the homography matrix.
   void setParam(float camera_height_m, float pitch_angle_deg, float focal_length_px, int input_width_px, int input_height_px);
   // Method to set a new input image.
   void getImage(cv::Mat src);
@@ -46,6 +46,7 @@ class IPM
   private:
 
   // Private member methods.
+  void setTransformationMatrix();
 
   // Private member variables.
   // Input image, which is perspectively distorted.
@@ -62,4 +63,12 @@ class IPM
   int input_width_px_;
   // Height of input image (in pixels).
   int input_height_px_;
+  // Vector to store the points in the input image for finding the homography.
+  cv::Point2f src_points[4];
+  // Vector to store the points in the output image for finding the homography.
+  cv::Point2f dst_points[4];
+  // Matrix to store the homography matrix.
+  cv::Mat perspective_transform;
+
+
 };

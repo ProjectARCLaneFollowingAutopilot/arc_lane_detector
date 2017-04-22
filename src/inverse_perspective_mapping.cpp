@@ -1,5 +1,6 @@
 #include "../include/inverse_perspective_mapping/inverse_perspective_mapping.hpp"
 
+// Public member methods.
 // Default constructor.
 IPM::IPM()
 {
@@ -12,7 +13,7 @@ IPM::~IPM()
   std::cout<<"IPM object destroyed!"<<std::endl;
 }
 
-// Method to set parameters, such as extrinsic and intrinsic camera parameters and then adjusts the connection_matrix_.
+// Method to set parameters, such as extrinsic and intrinsic camera parameters and then calculates and stores the projection matrix.
 void IPM::setParam(float camera_height_m, float pitch_angle_deg, float focal_length_px, int input_width_px, int input_height_px)
 {
   this->camera_height_m_ = camera_height_m;
@@ -20,6 +21,8 @@ void IPM::setParam(float camera_height_m, float pitch_angle_deg, float focal_len
   this->focal_length_px_ = focal_length_px;
   this->input_width_px_ = input_width_px;
   this->input_height_px_ = input_height_px;
+
+  this->setTransformationMatrix();
 }
 
 // Method to set a new input image.
@@ -31,16 +34,18 @@ void IPM::getImage(cv::Mat src)
 // Method which does IPM and returns undistorted, projected image.
 cv::Mat IPM::invPerspectiveMapping()
 {
-  // Sample four (or more-->parameter) sample pixels in input image which are in ROI (Street Plane).
-  // Determine first 4 points which are definately on the street plane.
-
-  // Save the input sample points in a vector.
-  // Using equation (6) transform the input sample points onto the ground plane.
-  // Knowing the width of the ground image in meters, calculate the resolution px/cm.
-  // Find to which pixel in the destination image, the input sample points are mapped to.
-  // Save the corresponding pixels in a vector.
-  // Run cv::findHomography.
   // Run cv::perspectiveProjection to get transformed image.
+}
 
+// Private member methods.
 
+// Method which prompts the user to calibrate the transformation matrix by assigning four pixel each in an image.
+void IPM::setTransformationMatrix()
+{
+  // Prompt user input.
+  // Show image (perspective) with four corners on a rectangle.
+  // Store the clicked on pixels.
+  // Show image of same dimensions as input image.
+  // User shall click on two points (diagonal), from which rectangle will be found and pixels stored.
+  // From this get the transformation matrix and then store it.
 }
