@@ -33,8 +33,8 @@ int main(int argc, char* argv[])
 
   // Try out perspective Transformation methods of opencv.
   Point2f a(0.0f, 0.0f);
-  Point2f b(0.0f, 479.0f);
-  Point2f c(479.0f, 0.0f);
+  Point2f b(479.0f, 0.0f);
+  Point2f c(0.0f, 479.0f);
   Point2f d(479.0f, 479.0f);
 
   Point2f src[4];
@@ -43,10 +43,10 @@ int main(int argc, char* argv[])
   src[2] = c;
   src[3] = d;
 
-  Point2f A(200.0f, 220.0f);
-  Point2f B(200.0f, 260.0f);
-  Point2f C(280.0f, 180.0f);
-  Point2f D(280.0f, 300.0f);
+  Point2f A(220.0f, 200.0f);
+  Point2f B(260.0f, 200.0f);
+  Point2f C(180.0f, 280.0f);
+  Point2f D(300.0f, 280.0f);
 
   Point2f dst[4];
   dst[0] = A;
