@@ -9,19 +9,10 @@ In order to work, the position and orientation of the camera w.r.t the ground pl
 #include <iostream>
 #include <cmath>
 
-struct connection_struct
-{
-  int input_u;
-  int input_v;
-  int red;
-  int green;
-  int blue;
-  float x_ground;
-  float y_ground;
-  float z_ground;
-  int index;
-};
+// Callback function for setMouseCallback and returns the point clicked on.
+void getClickedPixel(int event, int x, int y, int flags, void *ptr);
 
+// Constants.
 const float PI = 3.14159265;
 
 class IPM
@@ -46,6 +37,7 @@ class IPM
   private:
 
   // Private member methods.
+  // Method which prompts the user to calibrate the transformation matrix by assigning four pixel each in an image.
   void setTransformationMatrix();
 
   // Private member variables.
@@ -72,3 +64,7 @@ class IPM
 
 
 };
+
+/* Used codes
+http://opencvexamples.blogspot.com/2014/01/detect-mouse-clicks-and-moves-on-image.html
+*/

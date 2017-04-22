@@ -23,15 +23,14 @@ int main(int argc, char* argv[])
   }
   cout<<"Input image has been loaded properly."<<endl;
 
-  /*
+
   IPM test_object;
   test_object.IPM::getImage(input_image);
   test_object.IPM::setParam(camera_height, pitch_angle, focal_length_px, input_image.cols, input_image.rows);
 
-  cv::Mat dst = test_object.IPM::invPerspectiveMapping();
-  */
+  //cv::Mat dst = test_object.IPM::invPerspectiveMapping();
 
-  // Try out perspective Transformation methods of opencv.
+  /* Try out perspective Transformation methods of opencv.
   Point2f a(0.0f, 0.0f);
   Point2f b(479.0f, 0.0f);
   Point2f c(0.0f, 479.0f);
@@ -63,7 +62,7 @@ int main(int argc, char* argv[])
   imshow("Output",output_image);
 
    waitKey(0);
-
+   */
 
   return 0;
 }

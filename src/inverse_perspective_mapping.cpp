@@ -1,5 +1,20 @@
 #include "../include/inverse_perspective_mapping/inverse_perspective_mapping.hpp"
 
+// Non class methods
+// Callback function to detect if a pixel was clicked and to return the clicked on pixel.
+void getClickedPixel(int event, int x, int y, int flags, void *ptr)
+{
+  std::cout<<"Callback function called"<<std::endl;
+  if(event == cv::EVENT_LBUTTONDOWN)
+  {
+    cv::Point2f *p = (cv::Point2f*)ptr;
+    std::cout<<"x: "<<x<<std::endl;
+    std::cout<<"y: "<<y<<std::endl;
+    p->x = x;
+    p->y = y;
+  }
+}
+
 // Public member methods.
 // Default constructor.
 IPM::IPM()
@@ -43,9 +58,26 @@ cv::Mat IPM::invPerspectiveMapping()
 void IPM::setTransformationMatrix()
 {
   // Prompt user input.
+  // Open a window.
   // Show image (perspective) with four corners on a rectangle.
-  // Store the clicked on pixels.
+  cv::Point2f p;
+  cv::namedWindow("Display", CV_WINDOW_AUTOSIZE);
+
+  for(int i=0; i<4; i++)
+  {
+    cv::imshow("Display", input_img_);
+    cv::setMouseCallback("Display", getClickedPixel, &p);
+    std::cout<<p<<std::endl;
+    cv::waitKey(10000);
+    std::cout<<i<<std::endl;
+  }
+
+  // Close the window.
+  // Store the clicked on pixels to src_points[4].
+  // Close window as soon as four points have been clicked.
+  // Open another window.
   // Show image of same dimensions as input image.
-  // User shall click on two points (diagonal), from which rectangle will be found and pixels stored.
+  // User shall click on two points (diagonal), from which rectangle will be found and pixels stored to dst_points[4].
+  // Close window, as soon as two points have been clicked.
   // From this get the transformation matrix and then store it.
 }
