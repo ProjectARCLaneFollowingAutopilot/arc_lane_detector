@@ -192,12 +192,23 @@ void IPM::setTransformationMatrix(bool some_variable)
       y_max_cart = dst_points_cartesian[i].y;
     }
   }
-  std::cout<<"Xmin "<< x_min_cart<<std::endl;
+  std::cout<<"X_min "<< x_min_cart<<std::endl;
   std::cout<<"X_max "<<x_max_cart<<std::endl;
   std::cout<<"Y_min"<<y_min_cart<<std::endl;
   std::cout<<"Y_max"<<y_max_cart<<std::endl;
-  // Get the resolution of the output image (pixel/cm).
+  // Get the resolution of the output image (pixel/cm). Idea is, that the calibration points were chosen, such that they form
+  // a quadrilateral which is around the ROI (street). Then a rectangle is fitted using the extremas of the quadrilateral.
+  // This rectangle will be the boundaries of the output image.
+  float y_res = this->input_width_px_/(y_max_cart - y_min_cart);
+  float x_res = this->input_height_px_/(x_max_cart - x_min_cart);
+
   // Find to which pixel the points from dst_points_cartesian correspond to and assign them to dst_points_.
+  for(int i = 0; i<4; i++)
+  {
+    this->dst_points_[i].x = trunc(y_res*(std::abs(y_max_cart - dst_points_cartesian[i].y)));
+    this->dst_points_[i].y = trunc(x_res*(std::abs(x_max_cart - dst_points_cartesian[i].x)));
+  }
+
 
   // Knowing four points in each image, calculate the transformation matrix.
   this->perspective_transform_ = cv::getPerspectiveTransform(this->src_points_, this->dst_points_);

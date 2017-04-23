@@ -27,7 +27,7 @@ int main(int argc, char* argv[])
   IPM test_object;
   test_object.IPM::getImage(input_image);
   test_object.IPM::setParam(camera_height, pitch_angle, focal_length_px, input_image.cols, input_image.rows);
-  //test_object.IPM::invPerspectiveMapping();
+  test_object.IPM::invPerspectiveMapping();
   test_object.IPM::~IPM();
 
   /* Try out perspective Transformation methods of opencv.
