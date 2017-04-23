@@ -26,6 +26,13 @@ IPM::~IPM()
   std::cout<<"IPM object destroyed!"<<std::endl;
 }
 
+// Method to set a new input image.
+void IPM::getImage(cv::Mat src)
+{
+  this->input_img_ = src;
+  this->output_img_ = (this->input_img_).clone();
+}
+
 // Method to set parameters, such as extrinsic and intrinsic camera parameters and then finds the homography matrix.
 void IPM::setParam(float camera_height_m, float pitch_angle_deg, float focal_length_px, int input_width_px, int input_height_px)
 {
@@ -36,9 +43,10 @@ void IPM::setParam(float camera_height_m, float pitch_angle_deg, float focal_len
   this->input_width_px_ = input_width_px;
   this->input_height_px_ = input_height_px;
 
-  std::cout<<"Width "<<input_width_px<<std::endl;
-  std::cout<<"Height "<<input_height_px<<std::endl;
+  std::cout<<"Width in Pixel "<<input_width_px<<std::endl;
+  std::cout<<"Height in Pixel "<<input_height_px<<std::endl;
 
+  // The user has to choose four points in the input image which definately are on the ground plane.
   this->setCtrlPts();
 
   // Calculate the homography matrix.
@@ -52,30 +60,20 @@ void IPM::setCtrlPts()
   cv::Point2f p;
   cv::namedWindow("Display", CV_WINDOW_AUTOSIZE);
 
-  // Prompt user to select four points in perspectively distorted input image.
-  std::cout<<"Selecting Input Points"<<std::endl;
+  // Prompt user to select four points in perspectively distorted input image of the groundplane.
+  std::cout<<"Selecting Input Points on ground plane"<<std::endl;
   for(int i=0; i<4; i++)
   {
     std::cout<<"Point: "<<i+1<<" out of "<<4<<std::endl;
     std::cout<<"You have now 5 sec to click on your point"<<std::endl;
     cv::imshow("Display", input_img_);
     cv::setMouseCallback("Display", getClickedPixel, &p);
-    // cv::setMouseCallback("Display", NULL, NULL);
     cv::waitKey(5000);
     std::cout<<"Saved pixels: "<<std::endl;
     std::cout<<p<<std::endl;
     this->src_points_[i] = p;
     std::cout<<"Input Points saved!"<<std::endl;
-
   }
-}
-
-// Method to set a new input image.
-void IPM::getImage(cv::Mat src)
-{
-  this->input_img_ = src;
-  this->output_img_ = (this->input_img_).clone();
-
 }
 
 // Method which does IPM and returns undistorted, projected image.
@@ -84,7 +82,6 @@ void IPM::invPerspectiveMapping()
   // Run cv::perspectiveProjection to get transformed image.
   std::cout<<"IPM got called"<<std::endl;
   cv::warpPerspective(this->input_img_, this->output_img_, this->perspective_transform_, (this->output_img_).size());
-  std::cout<<"Warping done"<<std::endl;
 
   // Display both images.
   cv::namedWindow("Input", CV_WINDOW_AUTOSIZE);
@@ -148,30 +145,32 @@ void IPM::setTransformationMatrix()
   this->perspective_transform_ = cv::getPerspectiveTransform(this->src_points_, this->dst_points_);
 }
 
-// Method which uses four predefined points on input image, uses equation (6) to project and then gets and sets the transformation matrix.
+// Method which uses four predefined points on the input image, uses equation (6) to project and then gets and sets the transformation matrix.
 void IPM::setTransformationMatrix(bool some_variable)
 {
   std::cout<<"New method was called"<<std::endl;
+  // Variable which stores the actual cartesian coordinates of the input points' projection on the ground plane. In world coordinates!
   cv::Point2f dst_points_cartesian[4];
   float x_ground = 0.0;
   float y_ground = 0.0;
   float alpha_rad = ((this->pitch_angle_deg_)/180.0)*PI;
+  // Project each pixel point, the user chose onto the ground plane (in the world frame).
   for(int i = 0; i<4; i++)
   {
+    // Get pixel coordinates centred at the image centre and convention as used when deriving the formulas (u to the right, v to the top).
     float u = (this->src_points_[i]).x - (this->input_width_px_)/2.0;
     float v =  (-1.0)*((this->src_points_[i]).y - (this->input_height_px_)/2.0);
 
     // Find lambda from equation (7).
     float lambda = (this->camera_height_m_)/((this->focal_length_px_)*cos(alpha_rad) -  v*sin(alpha_rad));
-    // Project pixel from src_points_ to x,y (in world frame) onto ground plane (z=0) using equation (6) and save to dst_points_cartesian.
+    // Project pixel from src_points_ to x,y (in world frame) onto ground plane (z = 0) using equation (6) and save to dst_points_cartesian.
     x_ground = 0.0 + lambda*(v*cos(alpha_rad) + (this->focal_length_px_)*sin(alpha_rad));
     y_ground = 0.0 - lambda*u;
     dst_points_cartesian[i].x = x_ground;
     dst_points_cartesian[i].y = y_ground;
-
   }
 
-  // Find x_min, x_max, y_min, y_max in dst_points_cartesian-->Boundaries of image equivalent to 640x480 px.
+  // Find x_min, x_max, y_min, y_max in dst_points_cartesian-->Boundaries of image equivalent to image dimensions in px.
   float x_min_cart = 1000.0;
   float x_max_cart = -1000.0;
   float y_min_cart = 1000.0;
@@ -209,7 +208,6 @@ void IPM::setTransformationMatrix(bool some_variable)
     this->dst_points_[i].y = trunc(x_res*(std::abs(x_max_cart - dst_points_cartesian[i].x)));
   }
 
-  // Knowing four points in each image, calculate the transformation matrix.
+  // Knowing four points in each image, calculate the transformation matrix (image plane --> image plane).
   this->perspective_transform_ = cv::getPerspectiveTransform(this->src_points_, this->dst_points_);
-  std::cout<<"Trafo matrix was computed"<<std::endl;
 }

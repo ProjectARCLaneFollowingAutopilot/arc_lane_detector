@@ -33,7 +33,6 @@ class IPM
   // Method to prompt the user to set input control points.
   void setCtrlPts();
 
-
   // PUBLIC MEMBER VARIABLES.
 
   private:
@@ -41,7 +40,7 @@ class IPM
   // Method which prompts the user to calibrate the transformation matrix by assigning four pixel each in two images image.
   void setTransformationMatrix();
   // Method which uses four predefined points on input image, uses equation (6) to project and then gets and sets the transformation matrix.
-  // The input argument is only needed for overloading the function.
+  // The input argument of type boolean is only needed for overloading the function.
   void setTransformationMatrix(bool some_variable);
 
   // PRIVATE MEMBER VARIABLES.
