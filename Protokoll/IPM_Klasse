@@ -4,3 +4,4 @@
 *Mögliche Ursache: Da der Term mit der Brennweite (800 px) meist sehr viel grösser als die Koordinate v (+/- 240px) ist, hat v keinen grossen Einfluss.
 *Problem 2: Die y-Werte stimmen nur sehr grob überein. (+/- 20cm)
 *Mögliche Ursache: Die extrinsischen Parameter wurden wahrscheinlich zu ungenau bestummen. Oder ungenauigkeiten, weil floats verwendet werden.
+*Wirkliche Ursache: Es war ein Fehler in der Herleitung von Gleichung (7) aber der ausschlaggebende Punkt, war ein Plus statt minus v*sin(alpha) in der Berechnung von Lambda (im cpp code).

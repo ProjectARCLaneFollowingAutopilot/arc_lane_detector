@@ -155,15 +155,15 @@ void IPM::setTransformationMatrix(bool some_variable)
     std::cout<<"u "<<i+1<<" "<<u<<std::endl;
     std::cout<<"v "<<i+1<<" "<<v<<std::endl;
 
-    // Find lambda² from equation (7).
-    float lambda_sqrd = (this->camera_height_m_)/((this->focal_length_px_)*cos(alpha_rad) +  v*sin(alpha_rad));
+    // Find lambda from equation (7).
+    float lambda = (this->camera_height_m_)/((this->focal_length_px_)*cos(alpha_rad) -  v*sin(alpha_rad));
     // Project pixel from src_points_ to x,y (in world frame) onto ground plane (z=0) using equation (6) and save to dst_points_cartesian.
-    x_ground = 0.0 + lambda_sqrd*(v*cos(alpha_rad) + (this->focal_length_px_)*sin(alpha_rad));
-    y_ground = 0.0 - lambda_sqrd*u;
+    x_ground = 0.0 + lambda*(v*cos(alpha_rad) + (this->focal_length_px_)*sin(alpha_rad));
+    y_ground = 0.0 - lambda*u;
     dst_points_cartesian[i].x = x_ground;
     dst_points_cartesian[i].y = y_ground;
 
-    std::cout<<"Lambda² "<<i<<" "<<lambda_sqrd<<std::endl;
+    std::cout<<"Lambda "<<i<<" "<<lambda<<std::endl;
     std::cout<<"X_cart "<<i<<" "<<x_ground<<std::endl;
     std::cout<<"y_cart "<<i<<" "<<y_ground<<std::endl;
   }
