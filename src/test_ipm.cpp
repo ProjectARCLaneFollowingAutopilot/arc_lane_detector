@@ -29,7 +29,7 @@ int main(int argc, char* argv[])
   test_object.IPM::setParam(camera_height, pitch_angle, focal_length_px, input_image.cols, input_image.rows);
   test_object.IPM::invPerspectiveMapping();
   test_object.IPM::~IPM();
-  
+
   /* Try out perspective Transformation methods of opencv.
   Point2f a(0.0f, 0.0f);
   Point2f b(479.0f, 0.0f);

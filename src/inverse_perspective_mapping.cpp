@@ -115,3 +115,22 @@ void IPM::setTransformationMatrix()
   // Knowing four points in each image, calculate the transformation matrix.
   this->perspective_transform_ = cv::getPerspectiveTransform(this->src_points_, this->dst_points_);
 }
+
+// Method which uses four predefined points on input image, uses equation (6) to project and then gets and sets the transformation matrix.
+void IPM::setTransformationMatrix(bool some_variable)
+{
+  cv::Point2f dst_points_cartesian[4];
+  float x_ground = 0.0;
+  float y_ground = 0.0;
+  for(int i = 0; i<4; i++)
+  {
+    // Find lambda from equation (7).
+    // Project pixel from src_points_ to x,y on ground plane (z=0) using equation (6) and save to dst_points_cartesian.
+  }
+  // Find x_min, x_max, y_min, y_max in dst_points_cartesian-->Boundaries of image equivalent to 640x480 px.
+  // Get the resolution of the output image (pixel/cm).
+  // Find to which pixel the points from dst_points_cartesian correspond to and assign them to dst_points_.
+
+  // Knowing four points in each image, calculate the transformation matrix.
+  this->perspective_transform_ = cv::getPerspectiveTransform(this->src_points_, this->dst_points_);
+}
