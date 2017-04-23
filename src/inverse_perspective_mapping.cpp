@@ -35,11 +35,19 @@ void IPM::setParam(float camera_height_m, float pitch_angle_deg, float focal_len
   this->focal_length_px_ = focal_length_px;
   this->input_width_px_ = input_width_px;
   this->input_height_px_ = input_height_px;
-  this->output_img_ = (this->input_img_).clone();
 
   std::cout<<"Width "<<input_width_px<<std::endl;
   std::cout<<"Height "<<input_height_px<<std::endl;
 
+  this->setCtrlPts();
+
+  // Calculate the homography matrix.
+  this->setTransformationMatrix(1);
+}
+
+// Method to prompt the user to set input control points.
+void IPM::setCtrlPts()
+{
   // Let user select the input points.
   cv::Point2f p;
   cv::namedWindow("Display", CV_WINDOW_AUTOSIZE);
@@ -57,33 +65,33 @@ void IPM::setParam(float camera_height_m, float pitch_angle_deg, float focal_len
     std::cout<<"Saved pixels: "<<std::endl;
     std::cout<<p<<std::endl;
     this->src_points_[i] = p;
+    std::cout<<"Input Points saved!"<<std::endl;
+
   }
-
-  std::cout<<"Input Points saved!"<<std::endl;
-
-  // Calculate the homography matrix.
-  this->setTransformationMatrix(1);
 }
 
 // Method to set a new input image.
 void IPM::getImage(cv::Mat src)
 {
   this->input_img_ = src;
+  this->output_img_ = (this->input_img_).clone();
+
 }
 
 // Method which does IPM and returns undistorted, projected image.
-cv::Mat IPM::invPerspectiveMapping()
+void IPM::invPerspectiveMapping()
 {
   // Run cv::perspectiveProjection to get transformed image.
   std::cout<<"IPM got called"<<std::endl;
   cv::warpPerspective(this->input_img_, this->output_img_, this->perspective_transform_, (this->output_img_).size());
+  std::cout<<"Warping done"<<std::endl;
 
   // Display both images.
   cv::namedWindow("Input", CV_WINDOW_AUTOSIZE);
   cv::namedWindow("Output", CV_WINDOW_AUTOSIZE);
   cv::imshow("Input", this->input_img_);
   cv::imshow("Output", this->output_img_);
-  cv::waitKey(0);
+  cv::waitKey(5);
 }
 
 // PRIVATE MEMBER METHODS.
@@ -152,8 +160,6 @@ void IPM::setTransformationMatrix(bool some_variable)
   {
     float u = (this->src_points_[i]).x - (this->input_width_px_)/2.0;
     float v =  (-1.0)*((this->src_points_[i]).y - (this->input_height_px_)/2.0);
-    std::cout<<"u "<<i+1<<" "<<u<<std::endl;
-    std::cout<<"v "<<i+1<<" "<<v<<std::endl;
 
     // Find lambda from equation (7).
     float lambda = (this->camera_height_m_)/((this->focal_length_px_)*cos(alpha_rad) -  v*sin(alpha_rad));
@@ -163,9 +169,6 @@ void IPM::setTransformationMatrix(bool some_variable)
     dst_points_cartesian[i].x = x_ground;
     dst_points_cartesian[i].y = y_ground;
 
-    std::cout<<"Lambda "<<i<<" "<<lambda<<std::endl;
-    std::cout<<"X_cart "<<i<<" "<<x_ground<<std::endl;
-    std::cout<<"y_cart "<<i<<" "<<y_ground<<std::endl;
   }
 
   // Find x_min, x_max, y_min, y_max in dst_points_cartesian-->Boundaries of image equivalent to 640x480 px.
@@ -192,10 +195,7 @@ void IPM::setTransformationMatrix(bool some_variable)
       y_max_cart = dst_points_cartesian[i].y;
     }
   }
-  std::cout<<"X_min "<< x_min_cart<<std::endl;
-  std::cout<<"X_max "<<x_max_cart<<std::endl;
-  std::cout<<"Y_min"<<y_min_cart<<std::endl;
-  std::cout<<"Y_max"<<y_max_cart<<std::endl;
+
   // Get the resolution of the output image (pixel/cm). Idea is, that the calibration points were chosen, such that they form
   // a quadrilateral which is around the ROI (street). Then a rectangle is fitted using the extremas of the quadrilateral.
   // This rectangle will be the boundaries of the output image.
@@ -209,7 +209,7 @@ void IPM::setTransformationMatrix(bool some_variable)
     this->dst_points_[i].y = trunc(x_res*(std::abs(x_max_cart - dst_points_cartesian[i].x)));
   }
 
-
   // Knowing four points in each image, calculate the transformation matrix.
   this->perspective_transform_ = cv::getPerspectiveTransform(this->src_points_, this->dst_points_);
+  std::cout<<"Trafo matrix was computed"<<std::endl;
 }

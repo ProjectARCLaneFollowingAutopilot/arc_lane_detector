@@ -5,3 +5,6 @@
 *Problem 2: Die y-Werte stimmen nur sehr grob überein. (+/- 20cm)
 *Mögliche Ursache: Die extrinsischen Parameter wurden wahrscheinlich zu ungenau bestummen. Oder ungenauigkeiten, weil floats verwendet werden.
 *Wirkliche Ursache: Es war ein Fehler in der Herleitung von Gleichung (7) aber der ausschlaggebende Punkt, war ein Plus statt minus v*sin(alpha) in der Berechnung von Lambda (im cpp code).
+
+*Thema: Immer am Ende von IPM::invPerspectiveMapping gab es ein Segfault.
+* Wirkliche Ursache: IPM::invPerspectiveMapping gab ein Mat zurück aber die Funktion wurde als void Funktion eingesetzt.

@@ -29,7 +29,10 @@ class IPM
   // Method to set a new input image.
   void getImage(cv::Mat src);
   // Method which does IPM and returns undistorted, projected image.
-  cv::Mat invPerspectiveMapping();
+  void invPerspectiveMapping();
+  // Method to prompt the user to set input control points.
+  void setCtrlPts();
+
 
   // PUBLIC MEMBER VARIABLES.
 
