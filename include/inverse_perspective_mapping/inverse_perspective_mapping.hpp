@@ -4,6 +4,7 @@
 and return a non-distorted image projected on the ground plane.
 In order to work, the position and orientation of the camera w.r.t the ground plane has to be known.
 */
+#include <cmath>
 #include <cv.h>
 #include <iostream>
 #include "opencv2/highgui/highgui.hpp"

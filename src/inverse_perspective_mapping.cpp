@@ -37,8 +37,32 @@ void IPM::setParam(float camera_height_m, float pitch_angle_deg, float focal_len
   this->input_height_px_ = input_height_px;
   this->output_img_ = (this->input_img_).clone();
 
+  std::cout<<"Width "<<input_width_px<<std::endl;
+  std::cout<<"Height "<<input_height_px<<std::endl;
+
+  // Let user select the input points.
+  cv::Point2f p;
+  cv::namedWindow("Display", CV_WINDOW_AUTOSIZE);
+
+  // Prompt user to select four points in perspectively distorted input image.
+  std::cout<<"Selecting Input Points"<<std::endl;
+  for(int i=0; i<4; i++)
+  {
+    std::cout<<"Point: "<<i+1<<" out of "<<4<<std::endl;
+    std::cout<<"You have now 5 sec to click on your point"<<std::endl;
+    cv::imshow("Display", input_img_);
+    cv::setMouseCallback("Display", getClickedPixel, &p);
+    // cv::setMouseCallback("Display", NULL, NULL);
+    cv::waitKey(5000);
+    std::cout<<"Saved pixels: "<<std::endl;
+    std::cout<<p<<std::endl;
+    this->src_points_[i] = p;
+  }
+
+  std::cout<<"Input Points saved!"<<std::endl;
+
   // Calculate the homography matrix.
-  this->setTransformationMatrix();
+  this->setTransformationMatrix(1);
 }
 
 // Method to set a new input image.
@@ -119,15 +143,59 @@ void IPM::setTransformationMatrix()
 // Method which uses four predefined points on input image, uses equation (6) to project and then gets and sets the transformation matrix.
 void IPM::setTransformationMatrix(bool some_variable)
 {
+  std::cout<<"New method was called"<<std::endl;
   cv::Point2f dst_points_cartesian[4];
   float x_ground = 0.0;
   float y_ground = 0.0;
+  float alpha_rad = ((this->pitch_angle_deg_)/180.0)*PI;
   for(int i = 0; i<4; i++)
   {
-    // Find lambda from equation (7).
-    // Project pixel from src_points_ to x,y on ground plane (z=0) using equation (6) and save to dst_points_cartesian.
+    float u = (this->src_points_[i]).x - (this->input_width_px_)/2.0;
+    float v =  (-1.0)*((this->src_points_[i]).y - (this->input_height_px_)/2.0);
+    std::cout<<"u "<<i+1<<" "<<u<<std::endl;
+    std::cout<<"v "<<i+1<<" "<<v<<std::endl;
+
+    // Find lambda² from equation (7).
+    float lambda_sqrd = (this->camera_height_m_)/((this->focal_length_px_)*cos(alpha_rad) +  v*sin(alpha_rad));
+    // Project pixel from src_points_ to x,y (in world frame) onto ground plane (z=0) using equation (6) and save to dst_points_cartesian.
+    x_ground = 0.0 + lambda_sqrd*(v*cos(alpha_rad) + (this->focal_length_px_)*sin(alpha_rad));
+    y_ground = 0.0 - lambda_sqrd*u;
+    dst_points_cartesian[i].x = x_ground;
+    dst_points_cartesian[i].y = y_ground;
+
+    std::cout<<"Lambda² "<<i<<" "<<lambda_sqrd<<std::endl;
+    std::cout<<"X_cart "<<i<<" "<<x_ground<<std::endl;
+    std::cout<<"y_cart "<<i<<" "<<y_ground<<std::endl;
   }
+
   // Find x_min, x_max, y_min, y_max in dst_points_cartesian-->Boundaries of image equivalent to 640x480 px.
+  float x_min_cart = 1000.0;
+  float x_max_cart = -1000.0;
+  float y_min_cart = 1000.0;
+  float y_max_cart = -1000.0;
+  for(int i = 0; i<4; i++)
+  {
+    if(dst_points_cartesian[i].x < x_min_cart)
+    {
+      x_min_cart = dst_points_cartesian[i].x;
+    }
+    if(dst_points_cartesian[i].x > x_max_cart)
+    {
+      x_max_cart = dst_points_cartesian[i].x;
+    }
+    if(dst_points_cartesian[i].y < y_min_cart)
+    {
+      y_min_cart = dst_points_cartesian[i].y;
+    }
+    if(dst_points_cartesian[i].y > y_max_cart)
+    {
+      y_max_cart = dst_points_cartesian[i].y;
+    }
+  }
+  std::cout<<"Xmin "<< x_min_cart<<std::endl;
+  std::cout<<"X_max "<<x_max_cart<<std::endl;
+  std::cout<<"Y_min"<<y_min_cart<<std::endl;
+  std::cout<<"Y_max"<<y_max_cart<<std::endl;
   // Get the resolution of the output image (pixel/cm).
   // Find to which pixel the points from dst_points_cartesian correspond to and assign them to dst_points_.
 
