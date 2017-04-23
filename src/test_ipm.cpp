@@ -69,6 +69,7 @@ int main(int argc, char* argv[])
 
 /*
 
-This program will only be used to implement and test the IPM class
+This program will only be used to implement and test the IPM class using a static single image.
+As of April 23rd the IPM of a single image, knowing the cameras intrinsic and extrinsic parameters and four points in the iput image, works fine.
 
 */
