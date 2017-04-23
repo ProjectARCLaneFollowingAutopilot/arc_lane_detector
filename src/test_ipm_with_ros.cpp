@@ -14,8 +14,8 @@ using namespace std;
 IPM test_object;
 // Variable to save the incoming image from the webcam globally (maybe not needed).
 Mat src_img;
-float camera_height = 0.7;
-float pitch_angle = 45.0;
+float camera_height = 1.3;
+float pitch_angle = 0.0;
 float focal_length_px = 799.0;
 // Variable to only set the parameters once.
 int counter = 0;

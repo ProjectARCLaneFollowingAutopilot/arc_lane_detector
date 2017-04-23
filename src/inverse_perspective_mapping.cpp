@@ -74,6 +74,7 @@ void IPM::setCtrlPts()
     this->src_points_[i] = p;
     std::cout<<"Input Points saved!"<<std::endl;
   }
+  // setMouseCallback(windowname,NULL);
 }
 
 // Method which does IPM and returns undistorted, projected image.
