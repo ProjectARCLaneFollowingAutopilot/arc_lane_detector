@@ -51,6 +51,7 @@ void IPM::setParam(float camera_height_m, float pitch_angle_deg, float focal_len
 
   // Calculate the homography matrix.
   this->setTransformationMatrix(1);
+  //this->setTransformationMatrix();
 }
 
 // Method to prompt the user to set input control points.
@@ -81,7 +82,6 @@ void IPM::setCtrlPts()
 void IPM::invPerspectiveMapping()
 {
   // Run cv::perspectiveProjection to get transformed image.
-  std::cout<<"IPM got called"<<std::endl;
   cv::warpPerspective(this->input_img_, this->output_img_, this->perspective_transform_, (this->output_img_).size());
 
   // Display both images.
@@ -89,7 +89,7 @@ void IPM::invPerspectiveMapping()
   cv::namedWindow("Output", CV_WINDOW_AUTOSIZE);
   cv::imshow("Input", this->input_img_);
   cv::imshow("Output", this->output_img_);
-  cv::waitKey(5);
+  cv::waitKey(50);
 }
 
 // PRIVATE MEMBER METHODS.
@@ -133,6 +133,7 @@ void IPM::setTransformationMatrix()
   }
 
   // Assign the destination points from the two diagonal points, the user selected.
+  // Use a square template, which is easier to calibrate.
   this->dst_points_[0] = diagonal_elements[0];
   (this->dst_points_[1]).x = diagonal_elements[1].x;
   (this->dst_points_[1]).y = diagonal_elements[0].x;

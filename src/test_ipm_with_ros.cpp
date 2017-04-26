@@ -14,9 +14,9 @@ using namespace std;
 IPM test_object;
 // Variable to save the incoming image from the webcam globally (maybe not needed).
 Mat src_img;
-float camera_height = 1.3;
-float pitch_angle = 0.0;
-float focal_length_px = 799.0;
+float camera_height = 1.3;      //0.7;         // 1.3 0.78;
+float pitch_angle = 90;                 //80.0;
+float focal_length_px = 628.0;
 // Variable to only set the parameters once.
 int counter = 0;
 
@@ -34,8 +34,19 @@ void ipmCallback(const sensor_msgs::Image::ConstPtr& incoming_image)
     std::cout<<"Failed to load image"<<std::endl;
 
   }
+
+  // FLIP THE TABLE. Flip and save the image to global variable.
+  cv::flip(cv_ptr->image, src_img, 0);
   // Copy the image to global variable (maybe not needed).
-  src_img = (cv_ptr->image).clone();
+  //src_img = (cv_ptr->image).clone();
+
+  // TEST: CANNY BEFORE IPM.
+
+  // Run the canny operator (gradient, edge detection and thinning) and save the edge-image to dst_canny.
+  cv::Canny(src_img, src_img, 100, 350);
+  // Invert dst_canny (black->white, white->black). Not necessary, optional.
+  threshold(src_img, src_img, 128, 255, THRESH_BINARY_INV);
+
 
   // Give test_object the image.
   test_object.IPM::getImage(src_img);

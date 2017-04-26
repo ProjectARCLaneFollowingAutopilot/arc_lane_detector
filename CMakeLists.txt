@@ -10,6 +10,7 @@ cs_add_library(ipm_lib src/inverse_perspective_mapping.cpp)
 cs_add_executable(arc_lane_following_autopilot_exec src/main.cpp)
 cs_add_executable(test_ipm_exec src/test_ipm.cpp)
 cs_add_executable(test_ipm_with_ros_exec src/test_ipm_with_ros.cpp)
+cs_add_executable(test_imgproc_with_ros_exec src/test_imgproc_with_ros.cpp)
 
 
 target_link_libraries(test_ipm_exec ipm_lib)
