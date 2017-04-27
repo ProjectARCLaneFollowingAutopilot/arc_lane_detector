@@ -50,8 +50,8 @@ void IPM::setParam(float camera_height_m, float pitch_angle_deg, float focal_len
   this->setCtrlPts();
 
   // Calculate the homography matrix.
-  this->setTransformationMatrix(1);
   //this->setTransformationMatrix();
+  this->setTransformationMatrix(1);
 }
 
 // Method to prompt the user to set input control points.
@@ -200,14 +200,18 @@ void IPM::setTransformationMatrix(bool some_variable)
   // Get the resolution of the output image (pixel/cm). Idea is, that the calibration points were chosen, such that they form
   // a quadrilateral which is around the ROI (street). Then a rectangle is fitted using the extremas of the quadrilateral.
   // This rectangle will be the boundaries of the output image.
-  float y_res = this->input_width_px_/(y_max_cart - y_min_cart);
-  float x_res = this->input_height_px_/(x_max_cart - x_min_cart);
+  float y_res = (this->input_width_px_)/(2*(y_max_cart - y_min_cart));              //this->input_width_px_/(y_max_cart - y_min_cart);
+  float x_res = this->input_height_px_/(2*(x_max_cart - x_min_cart));              //this->input_height_px_/(x_max_cart - x_min_cart);
+
+  // World coordinates of the image origin (top left pixel).
+  float x_origin = x_min_cart + 480.0/x_res;
+  float y_origin = 320.0/y_res;
 
   // Find to which pixel the points from dst_points_cartesian correspond to and assign them to dst_points_.
   for(int i = 0; i<4; i++)
   {
-    this->dst_points_[i].x = trunc(y_res*(std::abs(y_max_cart - dst_points_cartesian[i].y)));
-    this->dst_points_[i].y = trunc(x_res*(std::abs(x_max_cart - dst_points_cartesian[i].x)));
+    this->dst_points_[i].x = trunc(y_res*(std::abs(y_origin - dst_points_cartesian[i].y)));      //trunc(y_res*(std::abs(y_max_cart - dst_points_cartesian[i].y)));
+    this->dst_points_[i].y = trunc(x_res*(std::abs(x_origin - dst_points_cartesian[i].x)));                 //trunc(x_res*(std::abs(x_max_cart - dst_points_cartesian[i].x)));
   }
 
   // Knowing four points in each image, calculate the transformation matrix (image plane --> image plane).

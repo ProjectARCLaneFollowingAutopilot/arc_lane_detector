@@ -38,14 +38,11 @@ void ipmCallback(const sensor_msgs::Image::ConstPtr& incoming_image)
   // FLIP THE TABLE. Flip and save the image to global variable.
   cv::flip(cv_ptr->image, src_img, 0);
   // Copy the image to global variable (maybe not needed).
-  //src_img = (cv_ptr->image).clone();
-
-  // TEST: CANNY BEFORE IPM.
 
   // Run the canny operator (gradient, edge detection and thinning) and save the edge-image to dst_canny.
-  cv::Canny(src_img, src_img, 100, 350);
+  //cv::Canny(src_img, src_img, 100, 350);
   // Invert dst_canny (black->white, white->black). Not necessary, optional.
-  threshold(src_img, src_img, 128, 255, THRESH_BINARY_INV);
+  //threshold(src_img, src_img, 128, 255, THRESH_BINARY_INV);
 
 
   // Give test_object the image.
@@ -75,7 +72,7 @@ int main(int argc, char* argv[])
   ros::spin();
 
   // Destroy the object.
-  //test_object.IPM::~IPM();
+  test_object.IPM::~IPM();
   return 0;
 }
 
