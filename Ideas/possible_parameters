@@ -1,4 +1,0 @@
-1. Number of sample points for findHomography
-2. Region of interest.
-3. Boolean to choose, if user shall choose calibration point for IPM or if a previously calculated transformed matrix from a
-yaml file should be used.
