@@ -79,17 +79,19 @@ void IPM::setCtrlPts()
 }
 
 // Method which does IPM and returns undistorted, projected image.
-void IPM::invPerspectiveMapping()
+cv::Mat IPM::invPerspectiveMapping()
 {
   // Run cv::perspectiveProjection to get transformed image.
   cv::warpPerspective(this->input_img_, this->output_img_, this->perspective_transform_, (this->output_img_).size());
 
   // Display both images.
-  cv::namedWindow("Input", CV_WINDOW_AUTOSIZE);
-  cv::namedWindow("Output", CV_WINDOW_AUTOSIZE);
-  cv::imshow("Input", this->input_img_);
-  cv::imshow("Output", this->output_img_);
-  cv::waitKey(50);
+  //cv::namedWindow("Input", CV_WINDOW_AUTOSIZE);
+  //cv::namedWindow("Output", CV_WINDOW_AUTOSIZE);
+  //cv::imshow("Input", this->input_img_);
+  //cv::imshow("Output", this->output_img_);
+  //cv::waitKey(50);
+
+  return this->output_img_;
 }
 
 // PRIVATE MEMBER METHODS.
@@ -199,7 +201,6 @@ void IPM::setTransformationMatrix(bool some_variable)
 
   // Get the resolution of the output image (pixel/cm). Idea is, that the calibration points were chosen, such that they form
   // a quadrilateral which is around the ROI (street). Then a rectangle is fitted using the extremas of the quadrilateral.
-  // This rectangle will be the boundaries of the output image.
   float y_res = (this->input_width_px_)/(2*(y_max_cart - y_min_cart));              //this->input_width_px_/(y_max_cart - y_min_cart);
   float x_res = this->input_height_px_/(2*(x_max_cart - x_min_cart));              //this->input_height_px_/(x_max_cart - x_min_cart);
 
@@ -217,3 +218,13 @@ void IPM::setTransformationMatrix(bool some_variable)
   // Knowing four points in each image, calculate the transformation matrix (image plane --> image plane).
   this->perspective_transform_ = cv::getPerspectiveTransform(this->src_points_, this->dst_points_);
 }
+
+
+/* Quellenangabe
+Die Idee IPM zu verwenden kam zuallererst vom Paper: Real Time Detection of Lane Markers.
+
+Das Paper Low-level Image Processing
+for Lane Detection and Tracking hat mich auf die Idee gebracht Kalibrierungspunkte auf der Strasse zu wählen (war schon klar),
+aber diese nicht als Berandung für das IPM'ed Bild zu wählen sondern, dass diese recht wenig Platz einnehmen im Zielbild.
+Dadurch sieht man auf dem IPM'd Bild sehr viel von der Umgebung, wenn auch verzerrt.
+*/
