@@ -52,7 +52,7 @@ void ipmCallback(const sensor_msgs::Image::ConstPtr& incoming_image)
 
   // Robins stuff. Plyground for da robin.
 
-  
+
 }
 
 

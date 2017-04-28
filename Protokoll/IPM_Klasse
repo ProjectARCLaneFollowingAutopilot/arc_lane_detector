@@ -8,3 +8,6 @@
 
 *Thema: Immer am Ende von IPM::invPerspectiveMapping gab es ein Segfault.
 * Wirkliche Ursache: IPM::invPerspectiveMapping gab ein Mat zurück aber die Funktion wurde als void Funktion eingesetzt.
+
+
+LÖSCHEN

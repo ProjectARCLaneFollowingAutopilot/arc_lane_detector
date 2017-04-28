@@ -8,10 +8,10 @@ catkin_simple(ALL_DEPS_REQUIRED)
 cs_add_library(ipm_lib src/inverse_perspective_mapping.cpp)
 
 cs_add_executable(arc_lane_following_autopilot_exec src/main.cpp)
-cs_add_executable(test_ipm_exec archive/test_ipm.cpp)
-cs_add_executable(test_ipm_with_ros_exec archive/test_ipm_with_ros.cpp)
+cs_add_executable(test_ipm_exec src/test_ipm.cpp)
+cs_add_executable(test_ipm_with_ros_exec src/test_ipm_with_ros.cpp)
 cs_add_executable(test_imgproc_with_ros_exec src/test_imgproc_with_ros.cpp)
-cs_add_executable(test_imgproc_static archive/test_imgproc_static.cpp)
+cs_add_executable(test_imgproc_static src/test_imgproc_static.cpp)
 cs_add_executable(test_imgproc_with_ipm_static_exec src/test_imgproc_with_ipm_static.cpp)
 cs_add_executable(test_robin_exec src/test_robin.cpp)
 
