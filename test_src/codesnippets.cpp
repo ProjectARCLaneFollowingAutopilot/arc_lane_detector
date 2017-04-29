@@ -84,3 +84,13 @@ ros::init(argc, argv, "node_name");
 ros::NodeHandle n;
 ros::Subscriber sub = n.subscribe("/usb_cam/image_raw", 10, ipmCallback);
 ros::spin();
+
+// SOLVE A LINEAR SYSTEM OF EQUATIONS.
+Eigen::Matrix3f A;
+Eigen::Vector3f b;
+A << 1,2,3,  4,5,6,  7,8,10;
+b << 3, 3, 4;
+cout << "Here is the matrix A:\n" << A << endl;
+cout << "Here is the vector b:\n" << b << endl;
+Eigen::Vector3f x = A.colPivHouseholderQr().solve(b);
+cout << "The solution is:\n" << x << endl;
