@@ -81,10 +81,11 @@ void webcamCallback(const sensor_msgs::Image::ConstPtr& incoming_image)
   }
   // Flip and save the image to global variable.
   cv::flip(cv_ptr->image, src, -1);
+  //src = (cv_ptr->image).clone();
 
   // Crop src to ROI.
   src_roi = src.clone();
-	int x_roi = 0;
+  int x_roi = 0;
 	int y_roi = 220;
 	int width_roi = 640;         //src.cols;
 	int height_roi = 200;            //src.rows - y_roi;
@@ -214,15 +215,20 @@ void findTwoNearLines()
   }
 
   // Assign new parameters, only if error is not too big.
-  if((lines[minimal_cost_left][1] > 0 && lines[minimal_cost_left][1] < PI/3.0) || (lines[minimal_cost_left][1] > 11.0/6.0*PI && lines[minimal_cost_left][1] < 2*PI))                          //(lines[minimal_cost_left][1] > 0 && lines[minimal_cost_left][1] < PI/4.0)
+  float zero_crossing_left = (lines[minimal_cost_left][0] - 199.0*sin(lines[minimal_cost_left][1])/cos(lines[minimal_cost_left][1]));
+  float zero_crossing_right = (lines[minimal_cost_right][0] - 199.0*sin(lines[minimal_cost_right][1])/cos(lines[minimal_cost_right][1]));
+  std::cout<<"Width "<<src_roi.cols<<" Height "<<src_roi.rows<<std::endl;
+  if(zero_crossing_left < 320.0)                       //  ((lines[minimal_cost_left][1] > 0 && lines[minimal_cost_left][1] < PI/3.0) || (lines[minimal_cost_left][1] > 11.0/6.0*PI && lines[minimal_cost_left][1] < 2*PI))                          //(lines[minimal_cost_left][1] > 0 && lines[minimal_cost_left][1] < PI/4.0)
   {
     rho_left_rad = lines[minimal_cost_left][0];
     theta_left_rad = lines[minimal_cost_left][1];
+    std::cout<<"Update Left"<<std::endl;
   }
-  if((lines[minimal_cost_right][1] > 0 && lines[minimal_cost_right][1] < PI/3.0) || (lines[minimal_cost_right][1] > 11.0/6.0*PI && lines[minimal_cost_right][1] < 2*PI))                                                  //(lines[minimal_cost_right][1] > 7*PI/4.0 && lines[minimal_cost_right][1] < 2.0*PI)
+  if(zero_crossing_right > 320.0)                  //              ((lines[minimal_cost_right][1] > 0 && lines[minimal_cost_right][1] < PI/3.0) || (lines[minimal_cost_right][1] > 11.0/6.0*PI && lines[minimal_cost_right][1] < 2*PI))                                                  //(lines[minimal_cost_right][1] > 7*PI/4.0 && lines[minimal_cost_right][1] < 2.0*PI)
   {
     rho_right_rad = lines[minimal_cost_right][0];
     theta_right_rad = lines[minimal_cost_right][1];
+    std::cout<<"Update Right"<<std::endl;
   }
 
 }
