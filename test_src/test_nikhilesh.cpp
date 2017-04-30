@@ -214,16 +214,17 @@ void findTwoNearLines()
   }
 
   // Assign new parameters, only if error is not too big.
-  if(lines[minimal_cost_right][1] > 7*PI/4.0 && lines[minimal_cost_right][1] < 2.0*PI)
-  {
-    rho_right_rad = lines[minimal_cost_right][0];
-    theta_right_rad = lines[minimal_cost_right][1];
-  }
-  if(lines[minimal_cost_left][1] > 0 && lines[minimal_cost_left][1] < PI/4.0)
+  if((lines[minimal_cost_left][1] > 0 && lines[minimal_cost_left][1] < PI/3.0) || (lines[minimal_cost_left][1] > 11.0/6.0*PI && lines[minimal_cost_left][1] < 2*PI))                          //(lines[minimal_cost_left][1] > 0 && lines[minimal_cost_left][1] < PI/4.0)
   {
     rho_left_rad = lines[minimal_cost_left][0];
     theta_left_rad = lines[minimal_cost_left][1];
   }
+  if((lines[minimal_cost_right][1] > 0 && lines[minimal_cost_right][1] < PI/3.0) || (lines[minimal_cost_right][1] > 11.0/6.0*PI && lines[minimal_cost_right][1] < 2*PI))                                                  //(lines[minimal_cost_right][1] > 7*PI/4.0 && lines[minimal_cost_right][1] < 2.0*PI)
+  {
+    rho_right_rad = lines[minimal_cost_right][0];
+    theta_right_rad = lines[minimal_cost_right][1];
+  }
+
 }
 
 // Callback function for setMouseCallback and returns the point clicked on.
