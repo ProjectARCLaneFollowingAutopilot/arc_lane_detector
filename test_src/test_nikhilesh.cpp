@@ -86,8 +86,8 @@ void webcamCallback(const sensor_msgs::Image::ConstPtr& incoming_image)
   src_roi = src.clone();
 	int x_roi = 0;
 	int y_roi = 220;
-	int width_roi = src.cols;
-	int height_roi = src.rows - y_roi;
+	int width_roi = 480;         //src.cols;
+	int height_roi = 200;            //src.rows - y_roi;
 	Rect region_roi = Rect(x_roi, y_roi, width_roi, height_roi);
   src_roi = src(region_roi);
 
@@ -213,7 +213,7 @@ void findTwoNearLines()
     }
   }
   // Save the parameters of the closest lines to global variable. Only if the error is not too big.
-  //if(cost_right_loop < 1.7 && cost_left_loop < 1.7)
+  //if(cost_right < 2 && cost_left < 2)
   //{
     rho_left_rad = lines[minimal_cost_left][0];
     theta_left_rad = lines[minimal_cost_left][1];
@@ -247,7 +247,7 @@ void setCtrlPts(Mat& calibration_image)
   for(int i = 0; i < 4; i++)
   {
     std::cout<<"Point: "<<i+1<<" out of "<<4<<std::endl;
-    std::cout<<"You have now 5 sec to click on your point"<<std::endl;
+    std::cout<<"You have now 10 sec to click on your point"<<std::endl;
     cv::imshow("Set Control Points", calibration_image);
     cv::setMouseCallback("Set Control Points", getClickedPixel, &p);
     cv::waitKey(10000);
