@@ -80,13 +80,13 @@ void webcamCallback(const sensor_msgs::Image::ConstPtr& incoming_image)
     std::cout<<"Got bad image from webcam!"<<std::endl;
   }
   // Flip and save the image to global variable.
-  cv::flip(cv_ptr->image, src, 0);
+  cv::flip(cv_ptr->image, src, -1);
 
   // Crop src to ROI.
   src_roi = src.clone();
 	int x_roi = 0;
 	int y_roi = 220;
-	int width_roi = 480;         //src.cols;
+	int width_roi = 640;         //src.cols;
 	int height_roi = 200;            //src.rows - y_roi;
 	Rect region_roi = Rect(x_roi, y_roi, width_roi, height_roi);
   src_roi = src(region_roi);
@@ -104,8 +104,8 @@ void webcamCallback(const sensor_msgs::Image::ConstPtr& incoming_image)
     Mat src_roi_drawn = src_roi.clone();
     cv::line(src_roi_drawn, init_points[0], init_points[1], Scalar(0,255,0), 3, 8);
     cv::line(src_roi_drawn, init_points[2], init_points[3], Scalar(0,255,0), 3, 8);
-    cv::imshow("Initlines", src_roi_drawn);
-    cv::waitKey(5000);
+    //cv::imshow("Initlines", src_roi_drawn);
+    //cv::waitKey(5000);
 
     // Transform and save x, y to rho, theta.
     Eigen::Vector2f polar_parameters;
@@ -181,8 +181,8 @@ void webcamCallback(const sensor_msgs::Image::ConstPtr& incoming_image)
 void findTwoNearLines()
 {
   // Initialize counter variables with ridiculously high values.
-  float cost_left = 10000.0;
-  float cost_right = 10000.0;
+  float cost_left = 10.0;
+  float cost_right = 10.0;
   int minimal_cost_left = 0;
   int minimal_cost_right = 0;
   for(int i = 0; i < lines.size(); i++)
@@ -212,15 +212,18 @@ void findTwoNearLines()
       cost_right = cost_right_loop;
     }
   }
-  // Save the parameters of the closest lines to global variable. Only if the error is not too big.
-  //if(cost_right < 2 && cost_left < 2)
-  //{
-    rho_left_rad = lines[minimal_cost_left][0];
-    theta_left_rad = lines[minimal_cost_left][1];
+
+  // Assign new parameters, only if error is not too big.
+  if(lines[minimal_cost_right][1] > 7*PI/4.0 && lines[minimal_cost_right][1] < 2.0*PI)
+  {
     rho_right_rad = lines[minimal_cost_right][0];
     theta_right_rad = lines[minimal_cost_right][1];
-  //}
-
+  }
+  if(lines[minimal_cost_left][1] > 0 && lines[minimal_cost_left][1] < PI/4.0)
+  {
+    rho_left_rad = lines[minimal_cost_left][0];
+    theta_left_rad = lines[minimal_cost_left][1];
+  }
 }
 
 // Callback function for setMouseCallback and returns the point clicked on.
