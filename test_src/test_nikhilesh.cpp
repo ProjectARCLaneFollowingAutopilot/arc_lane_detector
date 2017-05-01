@@ -32,6 +32,8 @@ Mat src;
 Mat src_roi;
 // The final image with only two lines.
 Mat dst;
+// The final image with only two lines in cropped image.
+Mat dst_roi;
 
 // FUNCTION DECLARATIONS.
 // NIKHILESH'S FUNCTIONS.
@@ -82,6 +84,7 @@ void webcamCallback(const sensor_msgs::Image::ConstPtr& incoming_image)
   // Flip and save the image to global variable.
   cv::flip(cv_ptr->image, src, -1);
   //src = (cv_ptr->image).clone();
+  dst = src.clone();
 
   // Crop src to ROI.
   src_roi = src.clone();
@@ -105,8 +108,6 @@ void webcamCallback(const sensor_msgs::Image::ConstPtr& incoming_image)
     Mat src_roi_drawn = src_roi.clone();
     cv::line(src_roi_drawn, init_points[0], init_points[1], Scalar(0,255,0), 3, 8);
     cv::line(src_roi_drawn, init_points[2], init_points[3], Scalar(0,255,0), 3, 8);
-    //cv::imshow("Initlines", src_roi_drawn);
-    //cv::waitKey(5000);
 
     // Transform and save x, y to rho, theta.
     Eigen::Vector2f polar_parameters;
@@ -144,7 +145,7 @@ void webcamCallback(const sensor_msgs::Image::ConstPtr& incoming_image)
   // Iterate through all lines, which were found by Hough to find the two lines which are closest to the previous two lines.
   findTwoNearLines();
 
-  // Show filtered hough image.
+  // Show filtered hough lines in cropped image.
   Point pt1;
   Point pt2;
   Point pt3;
@@ -169,12 +170,14 @@ void webcamCallback(const sensor_msgs::Image::ConstPtr& incoming_image)
   pt4.x = cvRound(x0_right - 1000*(-b_right));
   pt4.y = cvRound(y0_right - 1000*(a_right));
 
-  dst = src_roi.clone();
+  dst_roi = src_roi.clone();
 
-  line(dst, pt1, pt2, Scalar(0, 255, 0), 3, CV_AA);
-  line(dst, pt3, pt4, Scalar(0, 255, 0), 3, CV_AA);
+  line(dst_roi, pt1, pt2, Scalar(0, 255, 0), 3, CV_AA);
+  line(dst_roi, pt3, pt4, Scalar(0, 255, 0), 3, CV_AA);
 
+  // Show filtered hough lines in original image.
   imshow("Result", dst);
+  imshow("Result_ROI", dst_roi);
   waitKey(1);
 }
 
@@ -214,27 +217,47 @@ void findTwoNearLines()
     }
   }
 
-  // Assign new parameters, only if error is not too big.
-  // float zero_crossing_left = (lines[minimal_cost_left][0] - 170.0*sin(lines[minimal_cost_left][1])/cos(lines[minimal_cost_left][1]));
-  // float zero_crossing_right = (lines[minimal_cost_right][0] - 170.0*sin(lines[minimal_cost_right][1])/cos(lines[minimal_cost_right][1]));
+  // Assign new parameters if one line is one the rigt hand side and the other on the left hand side of the image.
   float y_crossing = 169.0;
   float zero_crossing_left = lines[minimal_cost_left][0]*cos(lines[minimal_cost_left][1]) - sin(lines[minimal_cost_left][1])*((y_crossing - lines[minimal_cost_left][0]*sin(lines[minimal_cost_left][1]))/(cos(lines[minimal_cost_left][1])));
   float zero_crossing_right = lines[minimal_cost_right][0]*cos(lines[minimal_cost_right][1]) - sin(lines[minimal_cost_right][1])*((y_crossing - lines[minimal_cost_right][0]*sin(lines[minimal_cost_right][1]))/(cos(lines[minimal_cost_right][1])));
   std::cout<<"Zeroleft "<<zero_crossing_left<<" Zeroright "<<zero_crossing_right<<std::endl;
-  // std::cout<<"Width "<<src_roi.cols<<" Height "<<src_roi.rows<<std::endl;
   if(zero_crossing_left < 320.0 && zero_crossing_left > -400.0)             //(lines[minimal_cost_left][1] > 0 && lines[minimal_cost_left][1] < PI/4.0)   // ((lines[minimal_cost_left][1] > 0 && lines[minimal_cost_left][1] < PI/3.0) || (lines[minimal_cost_left][1] > 11.0/6.0*PI && lines[minimal_cost_left][1] < 2*PI))  //
   {
     rho_left_rad = lines[minimal_cost_left][0];
     theta_left_rad = lines[minimal_cost_left][1];
-    //std::cout<<"Update Left"<<std::endl;
   }
   if(zero_crossing_right > 320.0 && zero_crossing_right < 1000.0)         // (lines[minimal_cost_right][1] > 7*PI/4.0 && lines[minimal_cost_right][1] < 2.0*PI)  //((lines[minimal_cost_right][1] > 0 && lines[minimal_cost_right][1] < PI/3.0) || (lines[minimal_cost_right][1] > 11.0/6.0*PI && lines[minimal_cost_right][1] < 2*PI)) //
   {
     rho_right_rad = lines[minimal_cost_right][0];
     theta_right_rad = lines[minimal_cost_right][1];
-    //std::cout<<"Update Right"<<std::endl;
   }
 
+  // Draw the lines into original image.
+  // Calculate point coordinates (cartesian) where the lines cross the upper and lower horizontal limitation of the cropped image.
+  float y_top = 0.0;
+  float y_bottom = 169.0;
+  float x_top_left = rho_left_rad*cos(theta_left_rad) - sin(theta_left_rad)*((y_top - rho_left_rad*sin(theta_left_rad))/(cos(theta_left_rad)));
+  float x_bottom_left = rho_left_rad*cos(theta_left_rad) - sin(theta_left_rad)*((y_bottom - rho_left_rad*sin(theta_left_rad))/(cos(theta_left_rad)));
+  float x_top_right = rho_right_rad*cos(theta_right_rad) - sin(theta_right_rad)*((y_top - rho_right_rad*sin(theta_right_rad))/(cos(theta_right_rad)));
+  float x_bottom_right = rho_right_rad*cos(theta_right_rad) - sin(theta_right_rad)*((y_bottom - rho_right_rad*sin(theta_right_rad))/(cos(theta_right_rad)));
+
+  Point left_top_dst;
+  Point left_bottom_dst;
+  Point right_top_dst;
+  Point right_bottom_dst;
+
+  left_top_dst.x = x_top_left;
+  left_top_dst.y = 250.0;
+  left_bottom_dst.x = x_bottom_left;
+  left_bottom_dst.y = 420.0;
+  right_top_dst.x = x_top_right;
+  right_top_dst.y = 250.0;
+  right_bottom_dst.x = x_bottom_right;
+  right_bottom_dst.y = 420.0;
+
+  line(dst, left_top_dst, left_bottom_dst, Scalar(0, 255, 0), 3, CV_AA);
+  line(dst, right_top_dst, right_bottom_dst, Scalar(0, 255, 0), 3, CV_AA);
 }
 
 // Callback function for setMouseCallback and returns the point clicked on.
@@ -307,7 +330,7 @@ void showImage(Mat show, string name)
 void houghTransform(Mat contours, Mat &draw_to)
 {
   // Hough transform. Parameter to be determined.
- 	HoughLines(contours, lines, 1, CV_PI/180, 90, 0, 0);
+ 	HoughLines(contours, lines, 1, CV_PI/180, 90, 0, 0);  // war 90.
 	for(int i = 0; i < lines.size(); i++)
 	{
 		float rho = lines[i][0];
@@ -325,4 +348,5 @@ void houghTransform(Mat contours, Mat &draw_to)
 		pt2.y = cvRound(y0 - 1000*(a));
 		line(draw_to, pt1, pt2, Scalar(0, 255, 0), 3, CV_AA);
 	}
+  std::cout<<"Anzahl Hough Linien: "<<lines.size()<<std::endl;
 }
