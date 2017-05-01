@@ -6,70 +6,90 @@
 #include "sensor_msgs/Image.h"
 #include "std_msgs/String.h"
 #include "../include/inverse_perspective_mapping/inverse_perspective_mapping.hpp"
-
 using namespace cv;
 using namespace std;
-
-// Global variables.
-IPM test_object;
-Mat src_img;
-Mat after_ipm;
-int counter = 0;
-// Camera parameters.
-float camera_height = 1.3;
-float pitch_angle = 90;
-float focal_length_px = 628.0;
-
-// Callback functions.
-// Function sets parameters if first image arrives. Otherwise IPM is done.
+//Robins functions.
+void showImage(Mat show, string name)
+{
+	//Function to shwo an Image in a new window.
+	namedWindow(name, CV_WINDOW_AUTOSIZE );
+	imshow(name , show );
+  	waitKey(1);
+}
+void saveImage(const sensor_msgs::Image::ConstPtr& incoming_image, Mat &src)
+{	//Saves incoming images.
+	cv_bridge::CvImagePtr cv_ptr;
+	cv_ptr=cv_bridge::toCvCopy(incoming_image, sensor_msgs::image_encodings::BGR8);
+	src=cv_ptr->image;
+}
+void houghTransform(Mat contours, Mat &src)
+{
+	//Does the Hough-Transform and draw the lines.
+	vector<Vec2f> lines;
+ 	HoughLines(contours, lines, 1, CV_PI/180, 90, 0, 0); //Parameter to determine.
+	for(size_t i=0; i<lines.size(); i++)
+	{
+		float rho=lines[i][0];
+		float theta=lines[i][1];
+		cout << i << "   " <<theta <<endl;
+		Point pt1;
+		Point pt2;
+		double a=cos(theta);
+		double b=sin(theta);
+		double x0=a*rho;
+		double y0=b*rho;
+		pt1.x = cvRound(x0 + 1000*(-b));
+		pt1.y = cvRound(y0 + 1000*(a));
+		pt2.x = cvRound(x0 - 1000*(-b));
+		pt2.y = cvRound(y0 - 1000*(a));
+		line(src, pt1, pt2, Scalar(0, 255, 0), 3, CV_AA);
+	}
+}
+// Callback function.
 void ipmCallback(const sensor_msgs::Image::ConstPtr& incoming_image)
 {
-  // Create a pointer, where the incoming ros-image gets assigned to.
-  cv_bridge::CvImagePtr cv_ptr;
-  cv_ptr = cv_bridge::toCvCopy(incoming_image, sensor_msgs::image_encodings::BGR8);
-  // Check for valid image.
-  if (!(cv_ptr->image).data)
-  {
-    std::cout<<"Failed to load image"<<std::endl;
-  }
-  // Flip and save the image to global variable.
-  cv::flip(cv_ptr->image, src_img, 0);
-
-  // Give test_object the image.
-  test_object.IPM::getImage(src_img);
-
-  // Set the extrinsics and intrinsics of test_object (also saves the transformation matrix of test_object).
-  // Do this only the first time an image has been received.
-  if(counter == 0)
-  {
-    cout<<"Got image to set the parameters."<<endl;
-    test_object.IPM::setParam(camera_height, pitch_angle, focal_length_px, src_img.cols, src_img.rows);
-    counter = counter + 1;
-  }
-
-  // Do the IPM transformation on the received image.
-  after_ipm = test_object.IPM::invPerspectiveMapping();
-
-  // Robins stuff. Plyground for da robin.
-
-
+	//Save the incoming image in an Mat-element and flip it.
+	Mat src_flipped;
+	Mat src;
+	saveImage(incoming_image, src_flipped);
+	flip(src_flipped, src, 0);
+	//Tryout median filter.
+	Mat median;
+	medianBlur(src, median, 15); //Parameter to determine.
+	showImage(median, "median");
+	//Tryout gaussian filter.
+	Mat gaussian;
+	Size size(23, 23);
+	GaussianBlur(src, gaussian, size, 15, 3, 0); //Several parameters to determine.
+	showImage(gaussian, "gaussian");
+	//Minimise the image to ROI and show it.
+	Mat src_ROI=src;
+	int x=0;
+	int y=220;
+	int w=src_flipped.cols;
+	int h=src_flipped.rows-y;
+	Rect region=Rect(x, y, w, h);
+	Mat ROI=median(region); //Gaussian oder median to determine.
+	showImage(ROI, "ROI");
+	rectangle(src_ROI, region, Scalar( 0, 255, 0 ) , 3, CV_AA);
+	showImage(src_ROI, "Ausschnitt");
+	//Canny-Edge-Detection.
+	Mat contoursInv=ROI;
+	Canny(ROI, contoursInv, 30, 50); //Parameter to determine.
+	Mat contours=ROI;
+	threshold(contoursInv,contours,128,255,THRESH_BINARY_INV);
+	showImage(contours, "Konturen");
+	Mat show=ROI;
+	//Hough-Transform.
+	houghTransform(contoursInv, show);
+	showImage(show, "Linien");
 }
-
-
 int main(int argc, char* argv[])
 {
   // Initialize the node.
   ros::init(argc, argv, "test_robin_node");
   ros::NodeHandle n;
-
   ros::Subscriber sub = n.subscribe("/usb_cam/image_raw", 10, ipmCallback);
   ros::spin();
-
-  // Destroy the object.
-  test_object.IPM::~IPM();
   return 0;
 }
-
-/*
-This program will be used to test the implementation color segmentation.
-*/
