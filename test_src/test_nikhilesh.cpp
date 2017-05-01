@@ -215,21 +215,25 @@ void findTwoNearLines()
   }
 
   // Assign new parameters, only if error is not too big.
-  float zero_crossing_left = (lines[minimal_cost_left][0] - 199.0*sin(lines[minimal_cost_left][1])/cos(lines[minimal_cost_left][1]));
-  float zero_crossing_right = (lines[minimal_cost_right][0] - 199.0*sin(lines[minimal_cost_right][1])/cos(lines[minimal_cost_right][1]));
-  std::cout<<"Width "<<src_roi.cols<<" Height "<<src_roi.rows<<std::endl;
-  //if(lines[minimal_cost_left][1] > 0 && lines[minimal_cost_left][1] < PI/4.0)   // ((lines[minimal_cost_left][1] > 0 && lines[minimal_cost_left][1] < PI/3.0) || (lines[minimal_cost_left][1] > 11.0/6.0*PI && lines[minimal_cost_left][1] < 2*PI))  //(zero_crossing_left < 320.0)
-  //{
+  // float zero_crossing_left = (lines[minimal_cost_left][0] - 170.0*sin(lines[minimal_cost_left][1])/cos(lines[minimal_cost_left][1]));
+  // float zero_crossing_right = (lines[minimal_cost_right][0] - 170.0*sin(lines[minimal_cost_right][1])/cos(lines[minimal_cost_right][1]));
+  float y_crossing = 169.0;
+  float zero_crossing_left = lines[minimal_cost_left][0]*cos(lines[minimal_cost_left][1]) - sin(lines[minimal_cost_left][1])*((y_crossing - lines[minimal_cost_left][0]*sin(lines[minimal_cost_left][1]))/(cos(lines[minimal_cost_left][1])));
+  float zero_crossing_right = lines[minimal_cost_right][0]*cos(lines[minimal_cost_right][1]) - sin(lines[minimal_cost_right][1])*((y_crossing - lines[minimal_cost_right][0]*sin(lines[minimal_cost_right][1]))/(cos(lines[minimal_cost_right][1])));
+  std::cout<<"Zeroleft "<<zero_crossing_left<<" Zeroright "<<zero_crossing_right<<std::endl;
+  // std::cout<<"Width "<<src_roi.cols<<" Height "<<src_roi.rows<<std::endl;
+  if(zero_crossing_left < 320.0 && zero_crossing_left > -400.0)             //(lines[minimal_cost_left][1] > 0 && lines[minimal_cost_left][1] < PI/4.0)   // ((lines[minimal_cost_left][1] > 0 && lines[minimal_cost_left][1] < PI/3.0) || (lines[minimal_cost_left][1] > 11.0/6.0*PI && lines[minimal_cost_left][1] < 2*PI))  //
+  {
     rho_left_rad = lines[minimal_cost_left][0];
     theta_left_rad = lines[minimal_cost_left][1];
     //std::cout<<"Update Left"<<std::endl;
-  //}
-  //if(lines[minimal_cost_right][1] > 7*PI/4.0 && lines[minimal_cost_right][1] < 2.0*PI)                                                           // ((lines[minimal_cost_right][1] > 0 && lines[minimal_cost_right][1] < PI/3.0) || (lines[minimal_cost_right][1] > 11.0/6.0*PI && lines[minimal_cost_right][1] < 2*PI)) // (zero_crossing_right > 320.0)
-  //{
+  }
+  if(zero_crossing_right > 320.0 && zero_crossing_right < 1000.0)         // (lines[minimal_cost_right][1] > 7*PI/4.0 && lines[minimal_cost_right][1] < 2.0*PI)  //((lines[minimal_cost_right][1] > 0 && lines[minimal_cost_right][1] < PI/3.0) || (lines[minimal_cost_right][1] > 11.0/6.0*PI && lines[minimal_cost_right][1] < 2*PI)) //
+  {
     rho_right_rad = lines[minimal_cost_right][0];
     theta_right_rad = lines[minimal_cost_right][1];
     //std::cout<<"Update Right"<<std::endl;
-  //}
+  }
 
 }
 
