@@ -5,7 +5,7 @@ find_package(catkin_simple REQUIRED)
 
 catkin_simple(ALL_DEPS_REQUIRED)
 
-cs_add_library(ipm_lib src/inverse_perspective_mapping.cpp)
+cs_add_library(ipm_lib ../arc_lane_tracking_tools/src/inverse_perspective_mapping/inverse_perspective_mapping.cpp)
 
 cs_add_executable(arc_lane_detection_exec src/main.cpp)
 

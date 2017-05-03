@@ -7,7 +7,7 @@
 #include "ros/ros.h"
 #include "sensor_msgs/Image.h"
 #include "std_msgs/String.h"
-#include "../include/inverse_perspective_mapping/inverse_perspective_mapping.hpp"
+#include "../../arc_lane_tracking_tools/include/inverse_perspective_mapping/inverse_perspective_mapping.hpp"
 
 using namespace cv;
 using namespace std;
