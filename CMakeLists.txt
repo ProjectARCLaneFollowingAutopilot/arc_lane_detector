@@ -8,8 +8,10 @@ catkin_simple(ALL_DEPS_REQUIRED)
 cs_add_library(ipm_lib ../arc_lane_tracking_tools/src/inverse_perspective_mapping/inverse_perspective_mapping.cpp)
 
 cs_add_executable(arc_lane_detection_exec src/main.cpp)
+cs_add_executable(test_nikhilesh_exec test_src/test_nikhilesh.cpp)
 
 target_link_libraries(arc_lane_detection_exec ipm_lib)
+target_link_libraries(test_nikhilesh_exec ipm_lib)
 
 cs_install()
 
