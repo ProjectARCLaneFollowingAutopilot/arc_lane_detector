@@ -65,8 +65,19 @@ void drawLinesToImage(Mat &image, vector<Vec2f> &lines_to_draw, int b, int g, in
 // ROBIN'S FUNCTIONS.
 // Function to show an Image in a new window.
 void showImage(Mat show, string name);
-// Does the Hough-Transform and draws the lines.
-void houghTransform(Mat contours, Mat &draw_to);
+Mat edgeDetector(Mat source);
+//Changed Functions.
+void houghTransform(Mat contours, Mat &draw_to, vector<Vec2f> lines_hT, int threshold);
+//Following Function are new:.
+//Functions return a Lines-Vector.
+vector<Vec2f> GrayProperty (Mat src);
+vector<Vec2f> InRange (Mat src_IR);
+vector<Vec2f> CompareGray (Mat src_CG);
+//Functions used by the Functions above.
+Mat FindGray(Mat src);
+Mat showChannel(Mat RGB, bool B, bool G, bool R);
+Mat RoadThreshold(Mat src_RT);
+Vec3b IntensityOfArea(Mat &src_IOA, int x_gray, int y_gray, int width_gray, int height_gray);
 
 int main(int argc, char* argv[])
 {
@@ -123,31 +134,41 @@ void webcamCallback(const sensor_msgs::Image::ConstPtr& incoming_image)
     rho_right = polar_parameters[1];
   }
 
-  // Filter the image.
-  Mat src_roi_filtered;
-  medianBlur(src_roi, src_roi_filtered, 15);
-
-  // Do the Hough Transform.
-  Mat contours_inverted = src_roi_filtered.clone();
-  //Run Canny. Parameter to be determined.
-  Canny(src_roi_filtered, contours_inverted, 30, 50);
-  Mat contours = contours_inverted.clone();
-  threshold(contours_inverted, contours, 128, 255, THRESH_BINARY_INV);
-  //Hough-Transform.
+  // Hough-Transform.
+  Mat contours = edgeDetector(src_roi);
   Mat draw_detected_hough = src_roi.clone();
-  houghTransform(contours_inverted, draw_detected_hough);
+  vector<Vec2f> test0;
+  houghTransform(contours, draw_detected_hough, test0, 90);
+  vector<Vec2f> test1 = GrayProperty(src_roi);
+  vector<Vec2f> test2 = InRange(src_roi);
+  vector<Vec2f> test3 = CompareGray (src_roi);
+
+  std::cout<<"Size of test0 vector: "<< test0.size()<< std::endl;
+  std::cout<<"Size of test1 vector: "<< test1.size()<< std::endl;
+  std::cout<<"Size of test2 vector: "<< test2.size()<< std::endl;
+  std::cout<<"Size of test3 vector: "<< test3.size()<< std::endl;
+
+  // Append all vectors.
+  lines.insert(lines.end(), test0.begin(), test0.end());
+  lines.insert(lines.end(), test1.begin(), test1.end());
+  lines.insert(lines.end(), test2.begin(), test2.end());
+  lines.insert(lines.end(), test3.begin(), test3.end());
+
+  std::cout<<"Size of lines vector: "<< lines.size()<< std::endl;
+
   // Iterate through all lines, which were found by Hough to find the two lines which are closest to the previous two lines.
   findTwoNearLines();
 
   // Draw the two found lines in the original image.
-  drawTwoLinesOriginal(dst);
-  drawTwoLinesCropped(dst_roi);
+  // drawTwoLinesOriginal(dst);
+  // drawTwoLinesCropped(dst_roi);
 
   // Show filtered hough lines in original image.
-  imshow("All lines", draw_detected_hough);
+  // imshow("All lines", draw_detected_hough);
   imshow("Result", dst);
-  imshow("Result_ROI", dst_roi);
+  // imshow("Result_ROI", dst_roi);
   waitKey(1);
+  lines.clear();
 }
 
 // Function which  filters the found Hough-Lines in order to find only two lines anymore.
@@ -173,7 +194,7 @@ void findTwoNearLines()
       if(bottom_crossing_x < src_roi.cols/2.0)
       {
         float delta_theta_l = std::abs(theta_left_rad - lines[i][1]);
-        if(delta_theta_l < 0.7)
+        if(true)
         {
           lines_left.push_back(lines[i]);
         }
@@ -181,7 +202,7 @@ void findTwoNearLines()
       else
       {
         float delta_theta_r = std::abs(theta_right_rad - lines[i][1]);
-        if(delta_theta_r < 0.3)
+        if(true)
         {
           lines_right.push_back(lines[i]);
         }
@@ -258,7 +279,7 @@ void findTwoNearLines()
   }
 
   // Based on update_counter_left and update_counter_right, decide if: Extrapolate left from right, extrapolate right from left or take previous parameters.
-  if((update_counter_left > 0) && (update_counter_right == 0))
+  /*if((update_counter_left > 0) && (update_counter_right == 0))
   {
     // Extrapolate left line, using right line and lateral distance from last frame.
     // 1. Get two points in the imag which define the RIGHT Line.
@@ -366,6 +387,7 @@ void findTwoNearLines()
 
   // Final step: Calculate parallel_distance,...
   parallel_distance = 3;
+  */
 }
 
 
@@ -520,9 +542,193 @@ void showImage(Mat show, string name)
   waitKey(1);
 }
 // Does the Hough-Transform and draws the lines.
-void houghTransform(Mat contours, Mat &draw_to)
+void houghTransform(Mat contours, Mat &draw_to, vector<Vec2f> lines_hT, int threshold)
 {
-  // Hough transform. Parameter to be determined.
- 	HoughLines(contours, lines, 1, CV_PI/180, 90, 0, 0);
-  drawLinesToImage(draw_to, lines, 0, 255, 0);
+  //Hough transform. Parameter to be determined.
+ 	HoughLines(contours, lines_hT, 1, CV_PI/180, threshold, 0, 0);  // war 90.
+
+	for(int i = 0; i < lines_hT.size(); i++)
+	{
+		float rho = lines_hT[i][0];
+		float theta = lines_hT[i][1];
+		// cout << i << "   " <<theta <<endl;
+		Point pt1;
+		Point pt2;
+		double a = cos(theta);
+		double b = sin(theta);
+		double x0 = a*rho;
+		double y0 = b*rho;
+		pt1.x = cvRound(x0 + 1000*(-b));
+		pt1.y = cvRound(y0 + 1000*(a));
+		pt2.x = cvRound(x0 - 1000*(-b));
+		pt2.y = cvRound(y0 - 1000*(a));
+		line(draw_to, pt1, pt2, Scalar(0, 255, 0), 3, CV_AA);
+	}
+  // std::cout<<"Anzahl Hough Linien: "<<lines_hT.size()<<std::endl;
+}
+
+//New functions.
+vector<Vec2f> GrayProperty (Mat src_GP)
+{
+	vector<Vec2f> lines_GP;
+	Mat contours(src_GP.rows, src_GP.cols, CV_8UC1);
+  Mat gray = FindGray(src_GP);
+	Canny(gray, contours, 50, 150);
+	houghTransform(contours, src_GP, lines_GP, 40);
+  std::cout<<"Size of lines_GP vector: "<< lines_GP.size()<< std::endl;
+	// showImage(src_GP, "Linien");
+	return lines_GP;
+}
+vector<Vec2f> InRange (Mat src_IR)
+{
+  Mat mask(src_IR.rows, src_IR.cols, CV_8UC1);
+	inRange(src_IR, Scalar(40, 40, 40),Scalar(150, 150, 150), mask);
+	Mat gray(src_IR.rows, src_IR.cols, CV_8UC1);
+	Mat contours(src_IR.rows, src_IR.cols, CV_8UC1);
+	Mat conv(src_IR.rows, src_IR.cols, CV_8UC1, 255);
+	bitwise_and(src_IR, src_IR, conv, mask);
+	Canny(mask, contours, 120, 150);
+	vector<Vec2f> lines_IR;
+	houghTransform(contours, src_IR ,lines_IR, 80);
+	return lines_IR;
+}
+vector<Vec2f> CompareGray (Mat src_CG)
+{
+	vector<Vec2f> lines_CG;
+	// showImage(showChannel(src_CG, true, true, true), "RGB");
+	// showImage(RoadThreshold(src_CG), "RoadTreshold");
+	Mat color_contour;
+	Canny(RoadThreshold(src_CG),  color_contour, 30, 50);
+	// showImage(color_contour, "FarbCanny");
+	Mat show_color_Hough=src_CG;
+	houghTransform(color_contour, show_color_Hough, lines_CG, 70);
+	// showImage(show_color_Hough, "ColorHoug");
+	return lines_CG;
+}
+Mat showChannel(Mat RGB, bool B, bool G, bool R)
+{
+	//This function is able to spit the color-channels and merge them again, if they are needed.
+	Mat channel[3];
+	Mat result=Mat::zeros(RGB.rows, RGB.cols, CV_8UC3);
+	split(RGB, channel);
+	if (B==false)
+		{
+		channel[0]=Mat::zeros(RGB.rows, RGB.cols, CV_8UC1);
+		}
+	if (G==false)
+		{
+		channel[1]=Mat::zeros(RGB.rows, RGB.cols, CV_8UC1);
+		}
+	if (R==false)
+		{
+		channel[2]=Mat::zeros(RGB.rows, RGB.cols, CV_8UC1);
+		}
+	merge(channel, 3, result);
+	return result;
+}
+Mat RoadThreshold(Mat src_RT)
+{
+	//Thresholds an image.
+	Vec3b Intensity1 = IntensityOfArea(src_RT, 360, 350, 100, 75);
+	Vec3b Intensity2 = IntensityOfArea(src_RT, 180, 350, 100, 75);
+	float B_average=(Intensity1[0]+Intensity2[0])/2;
+	float G_average=(Intensity1[1]+Intensity2[1])/2;
+	float R_average=(Intensity1[2]+Intensity2[2])/2;
+	Vec3b black;
+	black[0]=0;
+	black[1]=0;
+	black[2]=0;
+	Vec3b white;
+	black[0]=255;
+	black[1]=255;
+	black[2]=255;
+	for(int y=0;y<src_RT.rows;y++)
+	{
+ 		for(int x=0;x<src_RT.cols;x++)
+  		{
+    			Vec3b color = src_RT.at<Vec3b>(Point(x,y));
+			float B_delta_sq = ((color[0]-B_average)/B_average)*((color[0]-B_average)/B_average);
+			float G_delta_sq = ((color[1]-G_average)/G_average)*((color[1]-G_average)/G_average);
+			float R_delta_sq = ((color[2]-R_average)/R_average)*((color[2]-R_average)/R_average);
+			if ( (B_delta_sq<0.05) && (G_delta_sq<0.05) && (R_delta_sq<0.05))
+			{
+				src_RT.at<Vec3b>(Point(x,y))=black;
+			}
+			else
+			{
+				src_RT.at<Vec3b>(Point(x,y))=white;
+			}
+		}
+	}
+	return src_RT;
+}
+Vec3b IntensityOfArea(Mat &src_IOA, int x_gray, int y_gray, int width_gray, int height_gray)
+{
+	//This function calculate the averaged intensity of alle color-channels of a fixed region of a image.
+	Rect region_gray = Rect(x_gray, y_gray, width_gray, height_gray);
+	rectangle(src_IOA, region_gray, Scalar(0, 255, 0));
+  	Mat src_gray = src(region_gray);
+	float B_average=0;
+	float G_average=0;
+	float R_average=0;
+	for(int y=0;y<src_gray.rows;y++)
+	{
+ 		for(int x=0;x<src_gray.cols;x++)
+  		{
+    		Vec3b color = src_gray.at<Vec3b>(Point(x,y));
+		B_average=B_average+color[0];
+		G_average=G_average+color[1];
+		R_average=R_average+color[2];
+		}
+	}
+	B_average=B_average/(src_gray.rows*src_gray.cols);
+	G_average=G_average/(src_gray.rows*src_gray.cols);
+	R_average=R_average/(src_gray.rows*src_gray.cols);
+	Vec3b intensity;
+	intensity[0]=B_average;
+	intensity[1]=G_average;
+	intensity[2]=R_average;
+	return intensity;
+}
+Mat FindGray(Mat src_FG)
+{
+	Mat blur=src_FG.clone();
+	//medianBlur(src, blur, 7);
+	Mat result(src_FG.rows, src_FG.cols, CV_8UC1);
+	int sum;
+	for(int y=0;y<src_FG.rows;y++)
+	{
+ 		for(int x=0;x<src_FG.cols;x++)
+  		{
+    		Vec3b color = src_FG.at<Vec3b>(Point(x,y));
+		if( (color[0]>220) || (color[1]>220) || (color[2]>220))
+		{
+			sum=255;
+		}
+		else
+		{
+			int bg=color[0]-color[1];
+			int br=color[0]-color[2];
+			int gr=color[1]-color[2];
+			sum=(abs(bg)+abs(br)+abs(gr));
+		}
+		result.at<uchar>(Point(x,y))=sum;
+		}
+	}
+	medianBlur(result, blur, 7);
+	return blur;
+}
+
+Mat edgeDetector(Mat source)
+{
+  // Filter the image.
+  Mat src_roi_filtered;
+  medianBlur(source, src_roi_filtered, 15);
+
+  Mat contours_inverted = src_roi_filtered.clone();
+  //Run Canny. Parameter to be determined.
+  Canny(src_roi_filtered, contours_inverted, 30, 50);
+  Mat contours = contours_inverted.clone();
+  threshold(contours_inverted, contours, 128, 255, THRESH_BINARY_INV);
+  return contours;
 }
