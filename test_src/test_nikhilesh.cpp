@@ -60,14 +60,14 @@ void drawTwoLinesOriginal(Mat &image_to_draw);
 // Function to draw the detected lines with the current rho and theta into an image of the cropped size.
 void drawTwoLinesCropped(Mat &image_to_draw);
 // Function to draw the specified lines into a specified image in a specified color.
-void drawLinesToImage(Mat &image, vector<Vec2f> &lines_to_draw, int b, int g, int r);
+void drawLinesToImage(Mat &image, vector<Vec2f> &lines_to_draw);
 
 // ROBIN'S FUNCTIONS.
 // Function to show an Image in a new window.
 void showImage(Mat show, string name);
 Mat edgeDetector(Mat source);
 //Changed Functions.
-void houghTransform(Mat contours, Mat &draw_to, vector<Vec2f> lines_hT, int threshold);
+void houghTransform(Mat contours, Mat &draw_to, vector<Vec2f> &lines_hT, int threshold);
 //Following Function are new:.
 //Functions return a Lines-Vector.
 vector<Vec2f> GrayProperty (Mat src);
@@ -117,7 +117,7 @@ void webcamCallback(const sensor_msgs::Image::ConstPtr& incoming_image)
   if(init_counter == 0)
   {
     // Prompt user to select two lines on the cropped input image.
-    setCtrlPts(src_roi);
+    //setCtrlPts(src_roi);
 
     // Avoid another initialization when function gets called again.
     init_counter = init_counter + 1;
@@ -125,13 +125,26 @@ void webcamCallback(const sensor_msgs::Image::ConstPtr& incoming_image)
     // Transform and save x, y to rho, theta.
     Eigen::Vector2f polar_parameters;
     // Left line.
-    polar_parameters = getRhoAndTheta(init_points[0].x, init_points[1].x, init_points[0].y, init_points[1].y);
+    //polar_parameters = getRhoAndTheta(init_points[0].x, init_points[1].x, init_points[0].y, init_points[1].y);
+    polar_parameters = getRhoAndTheta(0, 100, 100, 0);
     theta_left_rad = polar_parameters[0];
     rho_left = polar_parameters[1];
     // Right line;
-    polar_parameters = getRhoAndTheta(init_points[2].x, init_points[3].x, init_points[2].y, init_points[3].y);
-    theta_right_rad = polar_parameters[0];
-    rho_right = polar_parameters[1];
+    //polar_parameters = getRhoAndTheta(init_points[2].x, init_points[3].x, init_points[2].y, init_points[3].y);
+    //theta_right_rad = polar_parameters[0];
+    //rho_right = polar_parameters[1];
+
+    vector<Vec2f> lines_help_init(1);
+
+    lines_help_init[0][0] = rho_left;
+    lines_help_init[0][1] = theta_left_rad;
+    std::cout<<"Rho left: "<<rho_left<<std::endl;
+    std::cout<<"Theta left: "<<theta_left_rad<<std::endl;
+
+    drawLinesToImage(src_roi, lines_help_init);
+
+    imshow("Lines inited", src_roi);
+    waitKey(0);
   }
 
   // Hough-Transform.
@@ -160,11 +173,13 @@ void webcamCallback(const sensor_msgs::Image::ConstPtr& incoming_image)
   findTwoNearLines();
 
   // Draw the two found lines in the original image.
-  // drawTwoLinesOriginal(dst);
+  drawTwoLinesOriginal(dst);
+  Mat all_lines = src_roi.clone();
+  drawLinesToImage(all_lines, lines);
   // drawTwoLinesCropped(dst_roi);
 
   // Show filtered hough lines in original image.
-  // imshow("All lines", draw_detected_hough);
+  imshow("All lines", all_lines);
   imshow("Result", dst);
   // imshow("Result_ROI", dst_roi);
   waitKey(1);
@@ -190,24 +205,28 @@ void findTwoNearLines()
     // Assign all lines to lines_left and lines_right. In the same step also filter out all obvious bad matches (to big jumps).
     for(int i = 0; i<lines.size(); i++)
     {
+      float top_crossing_x = lines[i][0]*cos(lines[i][1]) - sin(lines[i][1])*((0 - lines[i][0]*sin(lines[i][1]))/(cos(lines[i][1])));
       float bottom_crossing_x = lines[i][0]*cos(lines[i][1]) - sin(lines[i][1])*((src_roi.rows - lines[i][0]*sin(lines[i][1]))/(cos(lines[i][1])));
-      if(bottom_crossing_x < src_roi.cols/2.0)
+      if((bottom_crossing_x < src_roi.cols/2.0) && (bottom_crossing_x > - 320))
       {
-        float delta_theta_l = std::abs(theta_left_rad - lines[i][1]);
-        if(true)
+        float rel_error_theta_left = std::abs(1.0 - lines[i][1]/theta_left_rad);
+        if(rel_error_theta_left < 0.5)
         {
           lines_left.push_back(lines[i]);
         }
       }
-      else
+      if((bottom_crossing_x > src_roi.cols/2.0) && (bottom_crossing_x < 960))
       {
-        float delta_theta_r = std::abs(theta_right_rad - lines[i][1]);
-        if(true)
+        float rel_error_theta_right = std::abs(1.0 - lines[i][1]/theta_right_rad);
+        if(rel_error_theta_right < 0.5)
         {
           lines_right.push_back(lines[i]);
         }
       }
     }
+
+    std::cout<<"Number of left lines: "<<lines_left.size()<<std::endl;
+    std::cout<<"Number of right lines: "<<lines_right.size()<<std::endl;
 
     // After having excluded the obvious mismatches, assign the best matches for the next frame -->Update Step.
     if(lines_left.size() > 0)
@@ -431,6 +450,8 @@ Eigen::Vector2f getRhoAndTheta(float x_a, float x_b, float y_a, float y_b)
 {
   // Calculate theta.
   float theta = atan2(x_a - x_b, y_b - y_a);
+  std::cout<<"Calculated theta: "<<theta<<std::endl;
+  /*
   // Solve linear system of equation to find rho.
   Eigen::Matrix2f A;
   Eigen::Vector2f b;
@@ -441,6 +462,12 @@ Eigen::Vector2f getRhoAndTheta(float x_a, float x_b, float y_a, float y_b)
   Eigen::Vector2f x = A.colPivHouseholderQr().solve(b);
   //cout << "The solution is:\n" << x << endl;
   float rho = x[0];
+  */
+
+  // New method to calculate rho.
+  float rho_nom = x_a + y_a*((x_a - x_b)/(y_b - y_a));
+  float rho_denom = cos(theta) - sin(theta)*(x_b - x_a)/(y_b - y_a);
+  float rho = rho_nom/rho_denom;
 
   Eigen::Vector2f resultat;
   resultat << theta,rho;
@@ -513,7 +540,7 @@ void drawTwoLinesCropped(Mat &image_to_draw)
 }
 
 // Function to draw the specified lines into a specified image.
-void drawLinesToImage(Mat &image, vector<Vec2f> &lines_to_draw, int b, int g, int r)
+void drawLinesToImage(Mat &image, vector<Vec2f> &lines_to_draw)
 {
   for(int i = 0; i < lines_to_draw.size(); i++)
 	{
@@ -529,7 +556,7 @@ void drawLinesToImage(Mat &image, vector<Vec2f> &lines_to_draw, int b, int g, in
 		pt1.y = cvRound(y0 + 1000*(a));
 		pt2.x = cvRound(x0 - 1000*(-b));
 		pt2.y = cvRound(y0 - 1000*(a));
-		line(image, pt1, pt2, Scalar(b, g, r), 3, CV_AA);
+		line(image, pt1, pt2, Scalar(255, 0, 0), 3, CV_AA);
 	}
 }
 
@@ -542,7 +569,7 @@ void showImage(Mat show, string name)
   waitKey(1);
 }
 // Does the Hough-Transform and draws the lines.
-void houghTransform(Mat contours, Mat &draw_to, vector<Vec2f> lines_hT, int threshold)
+void houghTransform(Mat contours, Mat &draw_to, vector<Vec2f> &lines_hT, int threshold)
 {
   //Hough transform. Parameter to be determined.
  	HoughLines(contours, lines_hT, 1, CV_PI/180, threshold, 0, 0);  // war 90.
@@ -564,7 +591,6 @@ void houghTransform(Mat contours, Mat &draw_to, vector<Vec2f> lines_hT, int thre
 		pt2.y = cvRound(y0 - 1000*(a));
 		line(draw_to, pt1, pt2, Scalar(0, 255, 0), 3, CV_AA);
 	}
-  // std::cout<<"Anzahl Hough Linien: "<<lines_hT.size()<<std::endl;
 }
 
 //New functions.
@@ -575,7 +601,6 @@ vector<Vec2f> GrayProperty (Mat src_GP)
   Mat gray = FindGray(src_GP);
 	Canny(gray, contours, 50, 150);
 	houghTransform(contours, src_GP, lines_GP, 40);
-  std::cout<<"Size of lines_GP vector: "<< lines_GP.size()<< std::endl;
 	// showImage(src_GP, "Linien");
 	return lines_GP;
 }
@@ -692,19 +717,19 @@ Vec3b IntensityOfArea(Mat &src_IOA, int x_gray, int y_gray, int width_gray, int 
 }
 Mat FindGray(Mat src_FG)
 {
-	Mat blur=src_FG.clone();
+	Mat blur = src_FG.clone();
 	//medianBlur(src, blur, 7);
 	Mat result(src_FG.rows, src_FG.cols, CV_8UC1);
 	int sum;
-	for(int y=0;y<src_FG.rows;y++)
+	for(int y = 0;y < src_FG.rows; y++)
 	{
- 		for(int x=0;x<src_FG.cols;x++)
-  		{
+ 		for(int x = 0; x<src_FG.cols; x++)
+  	{
     		Vec3b color = src_FG.at<Vec3b>(Point(x,y));
-		if( (color[0]>220) || (color[1]>220) || (color[2]>220))
-		{
-			sum=255;
-		}
+		      if( (color[0]>220) || (color[1]>220) || (color[2]>220))
+		        {
+			        sum = 255;
+		        }
 		else
 		{
 			int bg=color[0]-color[1];
@@ -722,13 +747,11 @@ Mat FindGray(Mat src_FG)
 Mat edgeDetector(Mat source)
 {
   // Filter the image.
-  Mat src_roi_filtered;
+  Mat src_roi_filtered = source.clone();
   medianBlur(source, src_roi_filtered, 15);
 
-  Mat contours_inverted = src_roi_filtered.clone();
+  Mat contours = src_roi_filtered.clone();
   //Run Canny. Parameter to be determined.
-  Canny(src_roi_filtered, contours_inverted, 30, 50);
-  Mat contours = contours_inverted.clone();
-  threshold(contours_inverted, contours, 128, 255, THRESH_BINARY_INV);
+  Canny(src_roi_filtered, contours, 30, 50);
   return contours;
 }
