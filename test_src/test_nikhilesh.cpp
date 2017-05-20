@@ -107,7 +107,8 @@ void webcamCallback(const sensor_msgs::Image::ConstPtr& incoming_image)
     std::cout<<"Got bad image from webcam!"<<std::endl;
   }
   // Flip and save the image to global variable.
-  cv::flip(cv_ptr->image, src, -1);
+  //cv::flip(cv_ptr->image, src, -1);
+  src = cv_ptr->image;
   dst = src.clone();
 
   // Crop src to ROI.
@@ -116,35 +117,25 @@ void webcamCallback(const sensor_msgs::Image::ConstPtr& incoming_image)
   // Initialize the cropped image with two lines, which the user can choose.
   if(init_counter == 0)
   {
-    // Prompt user to select two lines on the cropped input image.
-    //setCtrlPts(src_roi);
-
     // Avoid another initialization when function gets called again.
     init_counter = init_counter + 1;
 
+    // Prompt user to select two lines on the cropped input image.
+    //setCtrlPts(src_roi);
     // Transform and save x, y to rho, theta.
-    Eigen::Vector2f polar_parameters;
+    //Eigen::Vector2f polar_parameters;
     // Left line.
     //polar_parameters = getRhoAndTheta(init_points[0].x, init_points[1].x, init_points[0].y, init_points[1].y);
-    polar_parameters = getRhoAndTheta(0, 100, 100, 0);
-    theta_left_rad = polar_parameters[0];
-    rho_left = polar_parameters[1];
+    //theta_left_rad = polar_parameters[0];
+    //rho_left = polar_parameters[1];
     // Right line;
     //polar_parameters = getRhoAndTheta(init_points[2].x, init_points[3].x, init_points[2].y, init_points[3].y);
     //theta_right_rad = polar_parameters[0];
     //rho_right = polar_parameters[1];
-
-    vector<Vec2f> lines_help_init(1);
-
-    lines_help_init[0][0] = rho_left;
-    lines_help_init[0][1] = theta_left_rad;
-    std::cout<<"Rho left: "<<rho_left<<std::endl;
-    std::cout<<"Theta left: "<<theta_left_rad<<std::endl;
-
-    drawLinesToImage(src_roi, lines_help_init);
-
-    imshow("Lines inited", src_roi);
-    waitKey(0);
+    theta_left_rad = -2.4081;
+    theta_right_rad = 2.12559;
+    rho_left = -229.39;
+    rho_right = -200.435;
   }
 
   // Hough-Transform.
@@ -152,20 +143,20 @@ void webcamCallback(const sensor_msgs::Image::ConstPtr& incoming_image)
   Mat draw_detected_hough = src_roi.clone();
   vector<Vec2f> test0;
   houghTransform(contours, draw_detected_hough, test0, 90);
-  vector<Vec2f> test1 = GrayProperty(src_roi);
-  vector<Vec2f> test2 = InRange(src_roi);
-  vector<Vec2f> test3 = CompareGray (src_roi);
+  //vector<Vec2f> test1 = GrayProperty(src_roi);
+  //vector<Vec2f> test2 = InRange(src_roi);
+  //vector<Vec2f> test3 = CompareGray (src_roi);
 
   std::cout<<"Size of test0 vector: "<< test0.size()<< std::endl;
-  std::cout<<"Size of test1 vector: "<< test1.size()<< std::endl;
-  std::cout<<"Size of test2 vector: "<< test2.size()<< std::endl;
-  std::cout<<"Size of test3 vector: "<< test3.size()<< std::endl;
+  //std::cout<<"Size of test1 vector: "<< test1.size()<< std::endl;
+  //std::cout<<"Size of test2 vector: "<< test2.size()<< std::endl;
+  //std::cout<<"Size of test3 vector: "<< test3.size()<< std::endl;
 
   // Append all vectors.
   lines.insert(lines.end(), test0.begin(), test0.end());
-  lines.insert(lines.end(), test1.begin(), test1.end());
-  lines.insert(lines.end(), test2.begin(), test2.end());
-  lines.insert(lines.end(), test3.begin(), test3.end());
+  //lines.insert(lines.end(), test1.begin(), test1.end());
+  //lines.insert(lines.end(), test2.begin(), test2.end());
+  //lines.insert(lines.end(), test3.begin(), test3.end());
 
   std::cout<<"Size of lines vector: "<< lines.size()<< std::endl;
 
@@ -196,10 +187,28 @@ void findTwoNearLines()
   vector<Vec2f> lines_right;
 
   // Set the constraints needed to filter. These constraints shall reset them to default values after five loops without two lines.
-  /*
-
-  */
-
+  // Idea: Three cases. Find the most suitable reset parameters: Left curved, right curved, straight.
+  if((update_counter_left > 5) && (update_counter_right < 5))
+  {
+    theta_left_rad = -2.4081;
+    rho_left = -229.39;
+    update_counter_left = 0;
+  }
+  else if((update_counter_left < 5) && (update_counter_right > 5))
+  {
+    theta_right_rad = 2.12559;
+    rho_right = -200.435;
+    update_counter_right = 0;
+  }
+  else if((update_counter_left > 5) && (update_counter_right > 5))
+  {
+    theta_left_rad = -2.4081;
+    theta_right_rad = 2.12559;
+    rho_left = -229.39;
+    rho_right = -200.435;
+    update_counter_left = 0;
+    update_counter_right = 0;
+  }
   if(lines.size() > 0)
   {
     // Assign all lines to lines_left and lines_right. In the same step also filter out all obvious bad matches (to big jumps).
@@ -210,7 +219,8 @@ void findTwoNearLines()
       if((bottom_crossing_x < src_roi.cols/2.0) && (bottom_crossing_x > - 320))
       {
         float rel_error_theta_left = std::abs(1.0 - lines[i][1]/theta_left_rad);
-        if(rel_error_theta_left < 0.5)
+        std::cout<<"Rel error left: "<<rel_error_theta_left<<std::endl;
+        if(true)
         {
           lines_left.push_back(lines[i]);
         }
