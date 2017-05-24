@@ -143,20 +143,20 @@ void webcamCallback(const sensor_msgs::Image::ConstPtr& incoming_image)
   Mat draw_detected_hough = src_roi.clone();
   vector<Vec2f> test0;
   houghTransform(contours, draw_detected_hough, test0, 90);
-  //vector<Vec2f> test1 = GrayProperty(src_roi);
-  //vector<Vec2f> test2 = InRange(src_roi);
-  //vector<Vec2f> test3 = CompareGray (src_roi);
+  vector<Vec2f> test1 = GrayProperty(src_roi);
+  vector<Vec2f> test2 = InRange(src_roi);
+  vector<Vec2f> test3 = CompareGray (src_roi);
 
-  std::cout<<"Size of test0 vector: "<< test0.size()<< std::endl;
+  //std::cout<<"Size of test0 vector: "<< test0.size()<< std::endl;
   //std::cout<<"Size of test1 vector: "<< test1.size()<< std::endl;
   //std::cout<<"Size of test2 vector: "<< test2.size()<< std::endl;
   //std::cout<<"Size of test3 vector: "<< test3.size()<< std::endl;
 
   // Append all vectors.
   lines.insert(lines.end(), test0.begin(), test0.end());
-  //lines.insert(lines.end(), test1.begin(), test1.end());
-  //lines.insert(lines.end(), test2.begin(), test2.end());
-  //lines.insert(lines.end(), test3.begin(), test3.end());
+  lines.insert(lines.end(), test1.begin(), test1.end());
+  lines.insert(lines.end(), test2.begin(), test2.end());
+  lines.insert(lines.end(), test3.begin(), test3.end());
 
   std::cout<<"Size of lines vector: "<< lines.size()<< std::endl;
 
@@ -168,6 +168,9 @@ void webcamCallback(const sensor_msgs::Image::ConstPtr& incoming_image)
   Mat all_lines = src_roi.clone();
   drawLinesToImage(all_lines, lines);
   // drawTwoLinesCropped(dst_roi);
+
+  // std::cout<<"Theta Left: "<<theta_left_rad<<std::endl;
+  // std::cout<<"Theta Right: "<<theta_right_rad<<std::endl;
 
   // Show filtered hough lines in original image.
   imshow("All lines", all_lines);
@@ -219,8 +222,7 @@ void findTwoNearLines()
       if((bottom_crossing_x < src_roi.cols/2.0) && (bottom_crossing_x > - 320))
       {
         float rel_error_theta_left = std::abs(1.0 - lines[i][1]/theta_left_rad);
-        std::cout<<"Rel error left: "<<rel_error_theta_left<<std::endl;
-        if(true)
+        if(lines[i][1] < 1.3)
         {
           lines_left.push_back(lines[i]);
         }
