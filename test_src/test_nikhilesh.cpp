@@ -112,7 +112,8 @@ void webcamCallback(const sensor_msgs::Image::ConstPtr& incoming_image)
   dst = src.clone();
 
   // Crop src to ROI.
-  src_roi = src(Rect(0, 250, 640, 170));
+  cv::Mat src_copy = src.clone();
+  src_roi = src_copy(Rect(0, 250, 640, 170));
 
   // Initialize the cropped image with two lines, which the user can choose.
   if(init_counter == 0)
@@ -161,17 +162,26 @@ void webcamCallback(const sensor_msgs::Image::ConstPtr& incoming_image)
   findTwoNearLines();
 
   // Draw the two found lines in the original image.
+  //drawTwoLinesOriginal(dst);
+  cv::Mat orig = src.clone();
+  cv::medianBlur(orig, orig, 15);
+  cv::Canny(orig, orig, 30, 50);
+  cv::cvtColor(orig, orig, CV_GRAY2BGR);
+
+  drawTwoLinesOriginal(orig);
   drawTwoLinesOriginal(dst);
-  Mat all_lines = src_roi.clone();
-  drawLinesToImage(all_lines, lines);
+
+  //Mat all_lines = src_roi.clone();
+  //drawLinesToImage(all_lines, lines);
   // drawTwoLinesCropped(dst_roi);
 
   // std::cout<<"Theta Left: "<<theta_left_rad<<std::endl;
   // std::cout<<"Theta Right: "<<theta_right_rad<<std::endl;
 
   // Show filtered hough lines in original image.
-  imshow("All lines", all_lines);
-  imshow("Result", dst);
+  //imshow("All lines", all_lines);
+  imshow("Result 1", orig);
+  imshow("Result 2", dst);
   // imshow("Result_ROI", dst_roi);
   waitKey(1);
   lines.clear();
@@ -610,7 +620,7 @@ vector<Vec2f> GrayProperty (Mat src_GP)
 	vector<Vec2f> lines_GP;
 	Mat contours(src_GP.rows, src_GP.cols, CV_8UC1);
 	//Find gray areas using the function FindGray.
-  	Mat gray = FindGray(src_GP);
+  Mat gray = FindGray(src_GP);
 	Canny(gray, contours, 50, 150);
 	houghTransform(contours, src_GP, lines_GP, 40);
 	return lines_GP;
@@ -618,7 +628,7 @@ vector<Vec2f> GrayProperty (Mat src_GP)
 vector<Vec2f> InRange (Mat src_IR)
 {
 	//Calculate a mask by using the openCV-function inRange.
-  	Mat mask(src_IR.rows, src_IR.cols, CV_8UC1);
+  Mat mask(src_IR.rows, src_IR.cols, CV_8UC1);
 	inRange(src_IR, Scalar(40, 40, 40),Scalar(150, 150, 150), mask);
 	Mat gray(src_IR.rows, src_IR.cols, CV_8UC1);
 	Mat contours(src_IR.rows, src_IR.cols, CV_8UC1);
