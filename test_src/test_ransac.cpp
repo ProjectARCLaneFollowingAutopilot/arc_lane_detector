@@ -17,12 +17,13 @@ int main(int argc, char *argv[])
 	// Read in the generated data set.
 	vector<Point2f> datenset;
 	std::ifstream read_in;
-	read_in.open("/home/nikhilesh/DataTextFiles/data.txt");
+	read_in.open("/home/nikhilesh/DataTextFiles/RobinAlgo/c_oben.txt");
 	while(read_in)
 	{
 		float x;
 		float y_noise;
 		read_in>>x>>y_noise;
+		y_noise = -y_noise;
 		Point2f temp_point(x, y_noise);
 		datenset.push_back(temp_point);
 	}
@@ -31,7 +32,7 @@ int main(int argc, char *argv[])
 	// Assign the data set.
 	test_kurve.Ransac::setRansacDataSet(datenset);
 	// Set the RANSAC parameters.
-	test_kurve.Ransac::setRansacParams(0.02, ((double)datenset.size())*0.4, 3);
+	test_kurve.Ransac::setRansacParams(5, 100, 4);
 	// Get the coefficients.
 	// t for measuring the performance of the algorithm.
 	double t = (double)getTickCount();
@@ -49,8 +50,6 @@ int main(int argc, char *argv[])
   	write_out <<found_coeffs[2]<<"\n";
   	write_out <<found_coeffs[3]<<"\n";
   	write_out.close();
-
-
 
 	t = ((double)getTickCount() - t)/getTickFrequency();
 

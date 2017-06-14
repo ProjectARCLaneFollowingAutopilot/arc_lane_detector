@@ -471,18 +471,6 @@ Eigen::Vector2f getRhoAndTheta(float x_a, float x_b, float y_a, float y_b)
   // Calculate theta.
   float theta = atan2(x_a - x_b, y_b - y_a);
   std::cout<<"Calculated theta: "<<theta<<std::endl;
-  /*
-  // Solve linear system of equation to find rho.
-  Eigen::Matrix2f A;
-  Eigen::Vector2f b;
-  A << sin(theta),(y_a - y_b),cos(theta),(x_b - x_a);
-  b << y_a,x_a;
-  //cout << "Here is the matrix A:\n" << A << endl;
-  //cout << "Here is the vector b:\n" << b << endl;
-  Eigen::Vector2f x = A.colPivHouseholderQr().solve(b);
-  //cout << "The solution is:\n" << x << endl;
-  float rho = x[0];
-  */
 
   // New method to calculate rho.
   float rho_nom = x_a + y_a*((x_a - x_b)/(y_b - y_a));
