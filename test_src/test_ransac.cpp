@@ -17,7 +17,7 @@ int main(int argc, char *argv[])
 	// Read in the generated data set.
 	vector<Point2f> datenset;
 	std::ifstream read_in;
-	read_in.open("/home/nikhilesh/DataTextFiles/RobinAlgo/a.txt");
+	read_in.open("/home/nikhilesh/DataTextFiles/data.txt");
 	while(read_in)
 	{
 		float x;
@@ -31,7 +31,7 @@ int main(int argc, char *argv[])
 	// Assign the data set.
 	test_kurve.Ransac::setRansacDataSet(datenset);
 	// Set the RANSAC parameters.
-	test_kurve.Ransac::setRansacParams(0.5, ((double)datenset.size())*0.4, 3);
+	test_kurve.Ransac::setRansacParams(0.02, ((double)datenset.size())*0.4, 3);
 	// Get the coefficients.
 	// t for measuring the performance of the algorithm.
 	double t = (double)getTickCount();
@@ -40,6 +40,18 @@ int main(int argc, char *argv[])
 	std::cout<<"a: "<<found_coeffs[0]<<std::endl;
 	std::cout<<"b: "<<found_coeffs[1]<<std::endl;
 	std::cout<<"c: "<<found_coeffs[2]<<std::endl;
+	std::cout<<"d: "<<found_coeffs[3]<<std::endl;
+
+	std::ofstream write_out;
+	write_out.open("/home/nikhilesh/DataTextFiles/coeff_lsq.txt");
+  	write_out <<found_coeffs[0]<<"\n";
+  	write_out <<found_coeffs[1]<<"\n";
+  	write_out <<found_coeffs[2]<<"\n";
+  	write_out <<found_coeffs[3]<<"\n";
+  	write_out.close();
+
+
+
 	t = ((double)getTickCount() - t)/getTickFrequency();
 
 	std::cout<<"Time passed in seconds: "<<t<<std::endl;
