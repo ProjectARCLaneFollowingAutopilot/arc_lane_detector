@@ -6,10 +6,10 @@
 5. Find points around line and run RANSAC.
 6. Using IPM, transform found polynomial from RANSAC.
 */
-
 #include <cv.h>
 #include <cv_bridge/cv_bridge.h>
 #include <iostream>
+#include <vector>
 #include "ros/ros.h"
 #include "sensor_msgs/Image.h"
 #include "std_msgs/String.h"
@@ -28,13 +28,15 @@ Mat source;
 vector<float> left_polynomial;
 vector<float> right_polynomial;
 
-
 // Callback function for subscribing to webcam.
 void webcamCallback(const sensor_msgs::Image::ConstPtr& incoming_image);
 
 int main(int argc, char *argv[])
 {
-	// Set parameters of LD, IPM, RANSAC objects.
+	// NOCH NICHT GEMACHT: Set parameters of LD, IPM, RANSAC objects.
+  	ipm_object.IPM::setParam(float camera_height_m, float pitch_angle_deg, float focal_length_px, int input_width_px, int input_height_px);
+ 	ld_object.LineDetector::setParams(Point2f roi_left_top, Point2f roi_right_bottom, Vec2f default_left, Vec2f default_right);
+ 	ransac_object.Ransac::setRansacParams(float max_inlier_distance, int max_num_of_iterations, int min_size_consensus);
 
   	// Initialize ROS Node.
   	ros::init(argc, argv, "lane_tracker");
@@ -51,7 +53,7 @@ int main(int argc, char *argv[])
 
 void webcamCallback(const sensor_msgs::Image::ConstPtr& incoming_image)
 {
-	// Clear things up for new iteration.
+	// NOCH NICHT GEMACHT: Clear things up for new iteration.
 
 	// Fetch image.
 	// Pointer to copy the converted sensor message to.
@@ -63,15 +65,15 @@ void webcamCallback(const sensor_msgs::Image::ConstPtr& incoming_image)
   	{
     	std::cout<<"Got bad image from webcam!"<<std::endl;
   	}
-  	// Flip and save the image to global variable.
+  	// Flip (if needed) and save the image to global variable.
   	//cv::flip(cv_ptr->image, src, -1);
-  	source = cv_ptr->image;
+  	source = cv_ptr->image.clone();
 
-	// Give it to LD to get lines.
+	// NOCH NICHT GEMACHT: Give it to LD to get lines.
 	ld_object.LineDetector::setImage(source);
 	ld_object.LineDetector::doLineDetection();
 
-	// Find points around two lines.
+	// NOCH NICHT GEMACHT: Find points around two lines.
 	vector<Point2f> left_points = ld_object.LineDetector::pointsAroundLeftLineOrig();
 	vector<Point2f> right_points = ld_object.LineDetector::pointsAroundRightLineOrig();
 
@@ -80,5 +82,16 @@ void webcamCallback(const sensor_msgs::Image::ConstPtr& incoming_image)
 	left_polynomial = ransac_object.Ransac::getRansacCoeff();
 	ransac_object.Ransac::setRansacDataSet(right_points);
 	right_polynomial = ransac_object.Ransac::getRansacCoeff();
+	// NOCH NICHT GEMACHT: Sample the left and right polynomials to find four sample points on each polynomial.	
+	vector<Point2f> sample_of_fit_left_image;
+	vector<Point2f> sample_of_fit_right_image;
 	// Transform found polynomial, using IPM.
+	vector<Point2f> sample_of_fit_left_world;
+	vector<Point2f> sample_of_fit_right_world;
+	for(int i = 0; i < sample_of_fit_left_world.size(); i++)
+	{
+		sample_of_fit_left_world.push_back(ipm_object.IPM::image2Local(sample_of_fit_left_image[i]));
+		sample_of_fit_right_world.push_back(ipm_object.IPM::image2Local(sample_of_fit_right_image[i]));
+	}
+	// NOCH NICHT GEMACHT: Return the polynomial coefficients of the left and right polynomial in the world frame.
 }
