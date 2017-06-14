@@ -8,7 +8,7 @@
 
 using namespace cv;
 
-int main()
+int main(int argc, char *argv[])
 {
 
 	Ransac test_kurve;
@@ -17,7 +17,7 @@ int main()
 	// Read in the generated data set.
 	vector<Point2f> datenset;
 	std::ifstream read_in;
-	read_in.open("/home/nikhilesh/DataTextFiles/data.txt");
+	read_in.open("/home/nikhilesh/DataTextFiles/RobinAlgo/a.txt");
 	while(read_in)
 	{
 		float x;
@@ -31,7 +31,7 @@ int main()
 	// Assign the data set.
 	test_kurve.Ransac::setRansacDataSet(datenset);
 	// Set the RANSAC parameters.
-	test_kurve.Ransac::setRansacParams(0.5, 50, 3);
+	test_kurve.Ransac::setRansacParams(0.5, ((double)datenset.size())*0.4, 3);
 	// Get the coefficients.
 	// t for measuring the performance of the algorithm.
 	double t = (double)getTickCount();

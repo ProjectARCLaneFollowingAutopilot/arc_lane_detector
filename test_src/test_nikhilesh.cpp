@@ -589,6 +589,7 @@ void showImage(Mat show, string name)
 	imshow(name, show);
   	waitKey(1);
 }
+
 // Does the Hough-Transform and draws the lines.
 void houghTransform(Mat contours, Mat &draw_to, vector<Vec2f> &lines_hT, int threshold)
 {
