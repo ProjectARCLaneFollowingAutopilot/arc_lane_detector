@@ -16,7 +16,7 @@ int main(int argc, char *argv[])
 	// Read in the generated data set.
 	vector<Point2f> datenset;
 	std::ifstream read_in;
-	read_in.open("/home/nikhilesh/DataTextFiles/RobinAlgo/c_oben.txt");
+	read_in.open("/home/nikhilesh/DataTextFiles/curved/data2_right.txt");
 	while(read_in)
 	{
 		float x;
