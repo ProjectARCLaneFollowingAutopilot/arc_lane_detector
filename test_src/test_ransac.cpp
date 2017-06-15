@@ -1,4 +1,3 @@
-
 #include <fstream>
 #include <iostream>
 #include <cv.h>
@@ -32,7 +31,7 @@ int main(int argc, char *argv[])
 	// Assign the data set.
 	test_kurve.Ransac::setRansacDataSet(datenset);
 	// Set the RANSAC parameters.
-	test_kurve.Ransac::setRansacParams(15, 50, 4);	// 5
+	test_kurve.Ransac::setRansacParams(10, 100, 4);	// 5
 	// Get the coefficients.
 	// t for measuring the performance of the algorithm.
 	double t = (double)getTickCount();
