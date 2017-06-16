@@ -192,9 +192,11 @@ void webcamCallback(const sensor_msgs::Image::ConstPtr& incoming_image)
   all_lines = all_lines(Rect(0, 250, 640, 170));
   drawLinesToImage(all_lines, lines);
 
+
   // Show filtered hough lines in original image.
   drawTwoLinesOriginal(dst);
   imshow("Result", dst);
+  
   imshow("All lines", all_lines);
   waitKey(1);
   lines.clear();
@@ -203,6 +205,19 @@ void webcamCallback(const sensor_msgs::Image::ConstPtr& incoming_image)
 // New method to filter out the lines vector to find only two lines.
 void filterLines()
 {
+  // At a first step, remove all lines passing through the VI sensor.
+  vector<Vec2f> lines_temporary;
+  for(int i = 0; i<lines.size(); i++)
+  { 
+    float x_middle = src_roi.cols/2.0;
+    float y_middle = (-cos(lines[i][1])/sin(lines[i][1]))*x_middle + (lines[i][0])/sin(lines[i][1]);
+    if(y_middle < 85)
+    {
+      lines_temporary.push_back(lines[i]);
+    }
+  }
+  lines = lines_temporary;
+
   vector<Vec2f> lines_left;
   vector<Vec2f> lines_right;
 
