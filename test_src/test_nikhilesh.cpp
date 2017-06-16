@@ -107,8 +107,8 @@ void webcamCallback(const sensor_msgs::Image::ConstPtr& incoming_image)
     std::cout<<"Got bad image from webcam!"<<std::endl;
   }
   // Flip and save the image to global variable.
-  //cv::flip(cv_ptr->image, src, -1);
-  src = cv_ptr->image;
+  cv::flip(cv_ptr->image, src, -1);
+  //src = cv_ptr->image;
   dst = src.clone();
 
   // Crop src to ROI.
@@ -582,37 +582,40 @@ void showImage(Mat show, string name)
 void houghTransform(Mat contours, Mat &draw_to, vector<Vec2f> &lines_hT, int threshold)
 {
   //Hough transform. Parameter to be determined.
- 	HoughLines(contours, lines_hT, 1, CV_PI/180, threshold, 0, 0);  // war 90.
-	//Iterate through all the lines and draw the line. 
-	for(int i = 0; i < lines_hT.size(); i++)
-	{
-		float rho = lines_hT[i][0];
-		float theta = lines_hT[i][1];
-		// cout << i << "   " <<theta <<endl;
-		Point pt1;
-		Point pt2;
-		double a = cos(theta);
-		double b = sin(theta);
-		double x0 = a*rho;
-		double y0 = b*rho;
-		pt1.x = cvRound(x0 + 1000*(-b));
-		pt1.y = cvRound(y0 + 1000*(a));
-		pt2.x = cvRound(x0 - 1000*(-b));
-		pt2.y = cvRound(y0 - 1000*(a));
-		line(draw_to, pt1, pt2, Scalar(0, 255, 0), 3, CV_AA);
-	}
+  HoughLines(contours, lines_hT, 1, CV_PI/180, threshold, 0, 0);  // war 90.
+  //Iterate through all the lines and draw the line. 
+  for(int i = 0; i < lines_hT.size(); i++)
+  {
+    float rho = lines_hT[i][0];
+    float theta = lines_hT[i][1];
+    // cout << i << "   " <<theta <<endl;
+    Point pt1;
+    Point pt2;
+    double a = cos(theta);
+    double b = sin(theta);
+    double x0 = a*rho;
+    double y0 = b*rho;
+    pt1.x = cvRound(x0 + 1000*(-b));
+    pt1.y = cvRound(y0 + 1000*(a));
+    pt2.x = cvRound(x0 - 1000*(-b));
+    pt2.y = cvRound(y0 - 1000*(a));
+    line(draw_to, pt1, pt2, Scalar(0, 255, 0), 3, CV_AA);
+  }
 }
 
 //New functions.
 vector<Vec2f> GrayProperty (Mat src_GP)
-{	
-	vector<Vec2f> lines_GP;
-	Mat contours(src_GP.rows, src_GP.cols, CV_8UC1);
-	//Find gray areas using the function FindGray.
+{ 
+  vector<Vec2f> lines_GP;
+  Mat contours(src_GP.rows, src_GP.cols, CV_8UC1);
+  //Find gray areas using the function FindGray.
   Mat gray = FindGray(src_GP);
-	Canny(gray, contours, 50, 150);
-	houghTransform(contours, src_GP, lines_GP, 40);
-	return lines_GP;
+  //showImage(gray, "FindGray");
+  Canny(gray, contours, 180, 180);
+  //Sobel(gray, contours, CV_16S, 1, 0, 3);
+  //showImage(contours, "konturen");
+  houghTransform(contours, src_GP, lines_GP, 30);
+  return lines_GP;
 }
 vector<Vec2f> InRange (Mat src_IR)
 {
@@ -631,17 +634,18 @@ vector<Vec2f> InRange (Mat src_IR)
 }
 vector<Vec2f> CompareGray (Mat src_CG)
 {
-	vector<Vec2f> lines_CG;
-	// showImage(showChannel(src_CG, true, true, true), "RGB");
-	// showImage(RoadThreshold(src_CG), "RoadTreshold");
-	Mat color_contour;
-	//Calculate Canny-image by using the function RoadThreshold;
-	Canny(RoadThreshold(src_CG),  color_contour, 30, 50);
-	// showImage(color_contour, "FarbCanny");
-	Mat show_color_Hough=src_CG;
-	houghTransform(color_contour, show_color_Hough, lines_CG, 70);
-	// showImage(show_color_Hough, "ColorHoug");
-	return lines_CG;
+  vector<Vec2f> lines_CG;
+  Mat src_copy_CG=src_CG.clone();
+  // showImage(showChannel(src_CG, true, true, true), "RGB");
+  // showImage(RoadThreshold(src_CG), "RoadTreshold");
+  Mat color_contour=src_copy_CG.clone();
+  //Calculate Canny-image by using the function RoadThreshold;
+  Canny(RoadThreshold(src_copy_CG),  color_contour, 30, 50);
+  //showImage(color_contour, "FarbCanny");
+  Mat show_color_Hough=src_copy_CG.clone();
+  houghTransform(color_contour, show_color_Hough, lines_CG, 30);
+  // showImage(show_color_Hough, "ColorHoug");
+  return lines_CG;
 }
 Mat showChannel(Mat RGB, bool B, bool G, bool R)
 {
@@ -666,115 +670,124 @@ Mat showChannel(Mat RGB, bool B, bool G, bool R)
 }
 Mat RoadThreshold(Mat src_RT)
 {
-	//Calculate the intensity of areas by using the function IntensityOfArea.
-	Vec3b Intensity1 = IntensityOfArea(src_RT, 360, 350, 100, 75);
-	Vec3b Intensity2 = IntensityOfArea(src_RT, 180, 350, 100, 75);
-	float B_average=(Intensity1[0]+Intensity2[0])/2;
-	float G_average=(Intensity1[1]+Intensity2[1])/2;
-	float R_average=(Intensity1[2]+Intensity2[2])/2;
-	//Define black vector.
-	Vec3b black;
-	black[0]=0;
-	black[1]=0;
-	black[2]=0;
-	//Define white vector.
-	Vec3b white;
-	black[0]=255;
-	black[1]=255;
-	black[2]=255;
-	//Iterate through the whole image.
-	for(int y=0;y<src_RT.rows;y++)
-	{
- 		for(int x=0;x<src_RT.cols;x++)
-  		{
-			//Calculate the deviation of the intensity. 
-    			Vec3b color = src_RT.at<Vec3b>(Point(x,y));
-			float B_delta_sq = ((color[0]-B_average)/B_average)*((color[0]-B_average)/B_average);
-			float G_delta_sq = ((color[1]-G_average)/G_average)*((color[1]-G_average)/G_average);
-			float R_delta_sq = ((color[2]-R_average)/R_average)*((color[2]-R_average)/R_average);
-			//Threshold the image.
-			if ( (B_delta_sq<0.05) && (G_delta_sq<0.05) && (R_delta_sq<0.05))
-			{
-				src_RT.at<Vec3b>(Point(x,y))=black;
-			}
-			else
-			{
-				src_RT.at<Vec3b>(Point(x,y))=white;
-			}
-		}
-	}
-	return src_RT;
+  //Calculate the intensity of areas by using the function IntensityOfArea.
+  Vec3b Intensity1 = IntensityOfArea(src_RT, 360, 250, 100, 75);
+  Vec3b Intensity2 = IntensityOfArea(src_RT, 180, 250, 100, 75);
+  float B_average=(Intensity1[0]+Intensity2[0])/2;
+  float G_average=(Intensity1[1]+Intensity2[1])/2;
+  float R_average=(Intensity1[2]+Intensity2[2])/2;
+  //Define black vector.
+  Vec3b black;
+  black[0]=0;
+  black[1]=0;
+  black[2]=0;
+  //Define white vector.
+  Vec3b white;
+  black[0]=255;
+  black[1]=255;
+  black[2]=255;
+  //Iterate through the whole image.
+  for(int y=0;y<src_RT.rows;y++)
+  {
+    for(int x=0;x<src_RT.cols;x++)
+      {
+      //Calculate the deviation of the intensity. 
+          Vec3b color = src_RT.at<Vec3b>(Point(x,y));
+      float B_delta_sq = ((color[0]-B_average)/B_average)*((color[0]-B_average)/B_average);
+      float G_delta_sq = ((color[1]-G_average)/G_average)*((color[1]-G_average)/G_average);
+      float R_delta_sq = ((color[2]-R_average)/R_average)*((color[2]-R_average)/R_average);
+      //Threshold the image.
+      if ( (B_delta_sq<0.08) && (G_delta_sq<0.08) && (R_delta_sq<0.08))
+      {
+        src_RT.at<Vec3b>(Point(x,y))=black;
+      }
+      else
+      {
+        src_RT.at<Vec3b>(Point(x,y))=white;
+      }
+    }
+  }
+  Mat src_RT_U(src_RT.rows, src_RT.cols, CV_8U);
+  Mat src_RT_U_filtered(src_RT.rows, src_RT.cols, CV_8U);
+  cvtColor(src_RT, src_RT_U, cv::COLOR_RGB2GRAY);
+  medianBlur(src_RT_U, src_RT_U_filtered, 15);  
+  showImage(src_RT_U_filtered, "RoadThreshold");
+  return src_RT_U_filtered;
 }
 Vec3b IntensityOfArea(Mat &src_IOA, int x_gray, int y_gray, int width_gray, int height_gray)
 {
-	//This function calculate the averaged intensity of alle color-channels of a fixed region of a image.
-	Rect region_gray = Rect(x_gray, y_gray, width_gray, height_gray);
-	rectangle(src_IOA, region_gray, Scalar(0, 255, 0));
-  	Mat src_gray = src(region_gray);
-	float B_average=0;
-	float G_average=0;
-	float R_average=0;
-	for(int y=0;y<src_gray.rows;y++)
-	{
- 		for(int x=0;x<src_gray.cols;x++)
-  		{
-    		Vec3b color = src_gray.at<Vec3b>(Point(x,y));
-		B_average=B_average+color[0];
-		G_average=G_average+color[1];
-		R_average=R_average+color[2];
-		}
-	}
-	B_average=B_average/(src_gray.rows*src_gray.cols);
-	G_average=G_average/(src_gray.rows*src_gray.cols);
-	R_average=R_average/(src_gray.rows*src_gray.cols);
-	Vec3b intensity;
-	intensity[0]=B_average;
-	intensity[1]=G_average;
-	intensity[2]=R_average;
-	return intensity;
+  //This function calculate the averaged intensity of alle color-channels of a fixed region of a image.
+  Rect region_gray = Rect(x_gray, y_gray, width_gray, height_gray);
+  rectangle(src_IOA, region_gray, Scalar(255, 255, 255), 10);
+  showImage(src_IOA, "infunction ");
+  Mat src_gray = src(region_gray);
+  float B_average=0;
+  float G_average=0;
+  float R_average=0;
+  for(int y=0;y<src_gray.rows;y++)
+  {
+    for(int x=0;x<src_gray.cols;x++)
+      {
+        Vec3b color = src_gray.at<Vec3b>(Point(x,y));
+    B_average=B_average+color[0];
+    G_average=G_average+color[1];
+    R_average=R_average+color[2];
+    }
+  }
+  B_average=B_average/(src_gray.rows*src_gray.cols);
+  G_average=G_average/(src_gray.rows*src_gray.cols);
+  R_average=R_average/(src_gray.rows*src_gray.cols);
+  Vec3b intensity;
+  intensity[0]=B_average;
+  intensity[1]=G_average;
+  intensity[2]=R_average;
+  return intensity;
 }
 Mat FindGray(Mat src_FG)
 {
-	Mat blur = src_FG.clone();
-	//medianBlur(src, blur, 7);
-	Mat result(src_FG.rows, src_FG.cols, CV_8UC1);
-	int sum;
-	//
-	for(int y = 0;y < src_FG.rows; y++)
-	{
- 		for(int x = 0; x<src_FG.cols; x++)
-  	{
-    		Vec3b color = src_FG.at<Vec3b>(Point(x,y));
-		      if( (color[0]>220) || (color[1]>220) || (color[2]>220))
-		        {
-			        sum = 255;
-		        }
-		else
-		{
-			int bg=color[0]-color[1];
-			int br=color[0]-color[2];
-			int gr=color[1]-color[2];
-			sum=(abs(bg)+abs(br)+abs(gr));
-		}
-		result.at<uchar>(Point(x,y))=sum;
-		}
-	}
-	medianBlur(result, blur, 7);
-	return blur;
+  Mat blur = src_FG.clone();
+  //medianBlur(src, blur, 7);
+  Mat result_FG(src_FG.rows, src_FG.cols, CV_8UC1);
+  int sum;
+  //
+  for(int y = 0;y < src_FG.rows; y++)
+  {
+    for(int x = 0; x<src_FG.cols; x++)
+    {
+        Vec3b color = src_FG.at<Vec3b>(Point(x,y));
+          if( (color[0]>220) || (color[1]>220) || (color[2]>220))
+            {
+              sum = 255;
+            }
+         else
+            {
+              int bg=color[0]-color[1];
+              int br=color[0]-color[2];
+              int gr=color[1]-color[2];
+              sum=(abs(bg)+abs(br)+abs(gr));
+            }
+        result_FG.at<uchar>(Point(x,y))=sum;
+    }
+  }
+  threshold(result_FG, blur, 35, 255, THRESH_BINARY);
+  medianBlur(blur, blur, 15);
+  showImage(blur, "thresholded image");
+  return blur;
 }
 
 vector<Vec2f> HoughClassic (Mat src_HC)
 {
   // Filter the image.
   Mat src_HC_roi_filtered = src_HC.clone();
-  medianBlur(src_HC, src_HC_roi_filtered, 15);
+  medianBlur(src_HC, src_HC_roi_filtered, 5);
 
   Mat contours = src_HC_roi_filtered.clone();
   //Run Canny. Parameter to be determined.
   Canny(src_HC_roi_filtered, contours, 30, 50);
-	Mat draw_detected_hough = src_HC.clone();
+  //showImage(contours, "canny image");
+  Mat draw_detected_hough = src_HC.clone();
   vector<Vec2f> lines_HC;
-	//Do HoughTransform.
-  houghTransform(contours, draw_detected_hough, lines_HC, 90);
+  //Do HoughTransform.
+  houghTransform(contours, draw_detected_hough, lines_HC, 80);
   return lines_HC;
 }
