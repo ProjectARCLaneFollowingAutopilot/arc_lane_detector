@@ -4,6 +4,7 @@
 #include <Eigen/Dense>
 #include <fstream>
 #include <iostream>
+#include <sstream>
 #include <vector>
 #include "opencv2/highgui/highgui.hpp"
 #include "ros/ros.h"
@@ -15,6 +16,8 @@ using namespace cv;
 using namespace std;
 
 // Global variables.
+// ROS specific.
+ros::Publisher publish_lane;
 // Current two lines. Parameters for the cropped image.
 float theta_left_rad;
 float rho_left;
@@ -22,11 +25,15 @@ float theta_right_rad;
 float rho_right;
 float alpha_deg;
 float beta_deg;
+vector<Point2f> left_line_orig;
+vector<Point2f> right_line_orig;
 
-// Camera intrinsics.
+// For image->world trafo:
 float camera_height = 1.3;
-float camera_angle = PI/2.0;
+float camera_angle = 90.0;
 float focal_length = 628.0;
+IPM ipm_object;
+
 // Lines.
 vector<Vec2f> lines;
 // Variable to set initial lane once.
@@ -98,6 +105,9 @@ Vec3b IntensityOfArea(Mat &src_IOA, int x_gray, int y_gray, int width_gray, int 
 
 int main(int argc, char* argv[])
 {
+  // Initialise.
+  ipm_object.IPM::setParam(camera_height, camera_angle, focal_length, 640.0, 480.0);
+
   // Initialize ROS Node.
   ros::init(argc, argv, "lane_detector");
   ros::NodeHandle n;
@@ -105,6 +115,9 @@ int main(int argc, char* argv[])
   // Declare callback function to get Webcam image.
   ros::Subscriber sub = n.subscribe("/usb_cam/image_raw", 10, webcamCallback);
 
+  // Declare a publisher, to publish the coordinates of the line.
+  publish_lane = n.advertise<std_msgs::String>("lane_boundaries", 1000);
+  
   // Run that shit.
   ros::spin();
 
@@ -212,7 +225,55 @@ void webcamCallback(const sensor_msgs::Image::ConstPtr& incoming_image)
   
   imshow("All lines", all_lines);
   waitKey(1);
+
+  // Transform lines to vehicle coordinates.
+  vector<Point2f> left_line_world;
+  vector<Point2f> right_line_world;
+  Point2f negative(-1000.0, -1000.0);
+  if((draw_left = true) && (draw_right = true))
+  {
+    left_line_world.push_back(ipm_object.IPM::image2Local(left_line_orig[0]));
+    left_line_world.push_back(ipm_object.IPM::image2Local(left_line_orig[1]));
+
+    right_line_world.push_back(ipm_object.IPM::image2Local(right_line_orig[0]));
+    right_line_world.push_back(ipm_object.IPM::image2Local(right_line_orig[1]));
+  }
+  else if((draw_left = true) && (draw_right = false))
+  {
+    left_line_world.push_back(ipm_object.IPM::image2Local(left_line_orig[0]));
+    left_line_world.push_back(ipm_object.IPM::image2Local(left_line_orig[1]));
+
+    right_line_world.push_back(negative);
+    right_line_world.push_back(negative);
+  }
+  else if((draw_left = false) && (draw_right = true))
+  {
+    left_line_world.push_back(negative);
+    left_line_world.push_back(negative);
+
+    right_line_world.push_back(ipm_object.IPM::image2Local(right_line_orig[0]));
+    right_line_world.push_back(ipm_object.IPM::image2Local(right_line_orig[1]));
+
+  }
+  else
+  {
+    left_line_world.push_back(negative);
+    left_line_world.push_back(negative);
+
+    right_line_world.push_back(negative);
+    right_line_world.push_back(negative);
+  }
+
+  // Publish the lines to topic (as a string).
+  std::stringstream ss;
+  ss<<left_line_world[0].x<<" "<<left_line_world[0].y<<" "<<left_line_world[1].x<<" "<<left_line_world[1].y<<" "<<right_line_world[0].x<<" "<<right_line_world[0].y<<" "<<right_line_world[1].x<<" "<<right_line_world[1].y;
+  std_msgs::String msg;
+  msg.data = ss.str();
+  publish_lane.publish(msg);
+
   lines.clear();
+  left_line_orig.clear();
+  right_line_orig.clear();
 }
 
 // New method to filter out the lines vector to find only two lines.
@@ -644,10 +705,10 @@ void drawTwoLinesOriginal(Mat &image_to_draw)
   float x_top_right = rho_right*cos(theta_right_rad) - sin(theta_right_rad)*((y_top - rho_right*sin(theta_right_rad))/(cos(theta_right_rad)));
   float x_bottom_right = rho_right*cos(theta_right_rad) - sin(theta_right_rad)*((y_bottom - rho_right*sin(theta_right_rad))/(cos(theta_right_rad)));
 
-  Point left_top_dst;
-  Point left_bottom_dst;
-  Point right_top_dst;
-  Point right_bottom_dst;
+  Point2f left_top_dst;
+  Point2f left_bottom_dst;
+  Point2f right_top_dst;
+  Point2f right_bottom_dst;
 
   left_top_dst.x = x_top_left;
   left_top_dst.y = 250.0;
@@ -661,10 +722,15 @@ void drawTwoLinesOriginal(Mat &image_to_draw)
   if(draw_left == true)
   {
       line(image_to_draw, left_top_dst, left_bottom_dst, Scalar(0, 255, 0), 3, CV_AA);
+      left_line_orig.push_back(left_bottom_dst);
+      left_line_orig.push_back(left_top_dst);
+
   }
   if(draw_right == true)
   {
     line(image_to_draw, right_top_dst, right_bottom_dst, Scalar(0, 255, 0), 3, CV_AA);
+    right_line_orig.push_back(right_bottom_dst);
+    right_line_orig.push_back(right_top_dst);
   }
 }
 
