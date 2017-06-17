@@ -229,51 +229,11 @@ void webcamCallback(const sensor_msgs::Image::ConstPtr& incoming_image)
   // Transform lines to vehicle coordinates.
   vector<Point2f> left_line_world;
   vector<Point2f> right_line_world;
-  Point2f negative(-1000.0, -1000.0);
-  if((draw_left = true) && (draw_right = true))
-  {
-    left_line_world.push_back(ipm_object.IPM::image2Local(left_line_orig[0]));
-    left_line_world.push_back(ipm_object.IPM::image2Local(left_line_orig[1]));
+  left_line_world.push_back(ipm_object.IPM::image2Local(left_line_orig[0]));
+  left_line_world.push_back(ipm_object.IPM::image2Local(left_line_orig[1]));
 
-    right_line_world.push_back(ipm_object.IPM::image2Local(right_line_orig[0]));
-    right_line_world.push_back(ipm_object.IPM::image2Local(right_line_orig[1]));
-  }
-  else if((draw_left = true) && (draw_right = false))
-  {
-    left_line_world.push_back(ipm_object.IPM::image2Local(left_line_orig[0]));
-    left_line_world.push_back(ipm_object.IPM::image2Local(left_line_orig[1]));
-
-    right_line_world.push_back(negative);
-    right_line_world.push_back(negative);
-  }
-  else if((draw_left = false) && (draw_right = true))
-  {
-    left_line_world.push_back(negative);
-    left_line_world.push_back(negative);
-
-    right_line_world.push_back(ipm_object.IPM::image2Local(right_line_orig[0]));
-    right_line_world.push_back(ipm_object.IPM::image2Local(right_line_orig[1]));
-
-  }
-  else
-  {
-    left_line_world.push_back(negative);
-    left_line_world.push_back(negative);
-
-    right_line_world.push_back(negative);
-    right_line_world.push_back(negative);
-  }
-  std::cout<<"Left Bottom: "<<left_line_world[0].x<<" "<<left_line_world[0].y<<std::endl;
-  std::cout<<"Left Top: "<<left_line_world[1].x<<" "<<left_line_world[1].y<<std::endl;
-  std::cout<<"Right Bottom: "<<right_line_world[0].x<<" "<<right_line_world[0].y<<std::endl;
-  std::cout<<"Right Top: "<<right_line_world[1].x<<" "<<right_line_world[1].y<<std::endl;
-
-  // Publish the lines to topic (as a string).
-  std::stringstream ss;
-  ss<<left_line_world[0].x<<" "<<left_line_world[0].y<<" "<<left_line_world[1].x<<" "<<left_line_world[1].y<<" "<<right_line_world[0].x<<" "<<right_line_world[0].y<<" "<<right_line_world[1].x<<" "<<right_line_world[1].y;
-  std_msgs::String msg;
-  msg.data = ss.str();
-  publish_lane.publish(msg);
+  right_line_world.push_back(ipm_object.IPM::image2Local(right_line_orig[0]));
+  right_line_world.push_back(ipm_object.IPM::image2Local(right_line_orig[1]));
 
   lines.clear();
   left_line_orig.clear();
