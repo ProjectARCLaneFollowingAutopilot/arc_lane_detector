@@ -6,6 +6,7 @@
 #include <iostream>
 #include <sstream>
 #include <vector>
+#include <string.h>
 #include "opencv2/highgui/highgui.hpp"
 #include "ros/ros.h"
 #include "sensor_msgs/Image.h"
@@ -234,6 +235,58 @@ void webcamCallback(const sensor_msgs::Image::ConstPtr& incoming_image)
 
   right_line_world.push_back(ipm_object.IPM::image2Local(right_line_orig[0]));
   right_line_world.push_back(ipm_object.IPM::image2Local(right_line_orig[1]));
+
+
+  ////
+  //
+  int scale=5;
+  Mat visualise;
+  visualise=imread("/home/robin/catkin_ws/src/arc_lane_following_autopilot/topview.jpg");
+  //Point top left.
+  Point2f draw_top_left((450-(left_line_world[1].y * 30)), (650-(left_line_world[1].x *30)));
+  cout << "Grösse vom Bild " << visualise.cols << " " << visualise.rows << endl;
+  //Point bottom left.
+  Point2f draw_bottom_left((450-(left_line_world[0].y * 30)), (650-(left_line_world[0].x *30)));
+  //Point top right.
+  Point2f draw_top_right((450-(right_line_world[1].y * 30)), (650-(right_line_world[1].x *30)));
+  //Point bottom right. 
+  Point2f draw_bottom_right((450-(right_line_world[0].y * 30)), (650-(right_line_world[0].x *30)));
+  //Calculations for the left line.
+  float draw_w_left=((draw_top_left.y-draw_bottom_left.y)/(draw_top_left.x-draw_bottom_left.x));
+  float draw_u_left=((draw_top_left.y - draw_w_left*draw_top_left.x));
+  float draw_y_left_desired_top=400;
+  float draw_y_left_desired_bottom=580;
+  float draw_x_left_desired_bottom=(draw_y_left_desired_bottom-draw_u_left)/draw_w_left;
+  float draw_x_left_desired_top=(draw_y_left_desired_top-draw_u_left)/draw_w_left;
+  Point2f draw_top_left_desired(draw_x_left_desired_top, draw_y_left_desired_top);
+  Point2f draw_bottom_left_desired(draw_x_left_desired_bottom, draw_y_left_desired_bottom);
+  //Draw left line.
+  line(visualise, draw_bottom_left_desired, draw_top_left_desired, Scalar(255, 255, 255), 3);
+  //Calculations for the right line.
+  float draw_w_right=((draw_top_right.y-draw_bottom_right.y)/(draw_top_right.x-draw_bottom_right.x));
+  float draw_u_right=((draw_top_right.y - draw_w_right*draw_top_right.x));
+  float draw_y_right_desired_top=400;
+  float draw_y_right_desired_bottom=580;
+  float draw_x_right_desired_bottom=(draw_y_right_desired_bottom-draw_u_right)/draw_w_right;
+  float draw_x_right_desired_top=(draw_y_right_desired_top-draw_u_right)/draw_w_right;
+  Point2f draw_top_right_desired(draw_x_right_desired_top, draw_y_right_desired_top);
+  Point2f draw_bottom_right_desired(draw_x_right_desired_bottom, draw_y_right_desired_bottom);
+  //Draw right line.
+  line(visualise, draw_bottom_right_desired, draw_top_right_desired, Scalar(255, 255, 255), 3);
+  //Write the relative error. 
+  float draw_distance = draw_x_right_desired_bottom - draw_x_left_desired_bottom;
+  float draw_rel_error_right = (draw_x_right_desired_bottom-450)/draw_distance;
+  float draw_rel_error_left = (450-draw_x_left_desired_bottom)/draw_distance;
+  ostringstream ss_left;
+  ss_left << draw_rel_error_left << " %%";
+  string draw_text_left(ss_left.str());
+
+  putText(visualise, draw_text_left, Point(50, 50), CV_FONT_HERSHEY_DUPLEX, 1, Scalar(255, 255, 255), 4);
+
+  showImage(visualise, "visalisierung");
+
+  ////
+
 
   lines.clear();
   left_line_orig.clear();
