@@ -29,7 +29,7 @@ vector<Point2f> left_line_orig;
 vector<Point2f> right_line_orig;
 
 // For image->world trafo:
-float camera_height = 1.3;
+float camera_height = 1.45;
 float camera_angle = 90.0;
 float focal_length = 628.0;
 IPM ipm_object;
@@ -137,8 +137,8 @@ void webcamCallback(const sensor_msgs::Image::ConstPtr& incoming_image)
     std::cout<<"Got bad image from webcam!"<<std::endl;
   }
   // Flip and save the image to global variable.
-  cv::flip(cv_ptr->image, src, -1);
-  //src = cv_ptr->image;
+  //cv::flip(cv_ptr->image, src, -1);
+  src = cv_ptr->image;
   dst = src.clone();
 
   // Crop src to ROI.
@@ -263,6 +263,10 @@ void webcamCallback(const sensor_msgs::Image::ConstPtr& incoming_image)
     right_line_world.push_back(negative);
     right_line_world.push_back(negative);
   }
+  std::cout<<"Left Bottom: "<<left_line_world[0].x<<" "<<left_line_world[0].y<<std::endl;
+  std::cout<<"Left Top: "<<left_line_world[1].x<<" "<<left_line_world[1].y<<std::endl;
+  std::cout<<"Right Bottom: "<<right_line_world[0].x<<" "<<right_line_world[0].y<<std::endl;
+  std::cout<<"Right Top: "<<right_line_world[1].x<<" "<<right_line_world[1].y<<std::endl;
 
   // Publish the lines to topic (as a string).
   std::stringstream ss;
@@ -698,7 +702,7 @@ void drawTwoLinesOriginal(Mat &image_to_draw)
 {
   // Draw the lines into original image.
   // Calculate point coordinates (cartesian) where the lines cross the upper and lower horizontal limitation of the cropped image.
-  float y_top = 0.0;
+  float y_top = 40.0;
   float y_bottom = src_roi.rows;
   float x_top_left = rho_left*cos(theta_left_rad) - sin(theta_left_rad)*((y_top - rho_left*sin(theta_left_rad))/(cos(theta_left_rad)));
   float x_bottom_left = rho_left*cos(theta_left_rad) - sin(theta_left_rad)*((y_bottom - rho_left*sin(theta_left_rad))/(cos(theta_left_rad)));
@@ -711,11 +715,11 @@ void drawTwoLinesOriginal(Mat &image_to_draw)
   Point2f right_bottom_dst;
 
   left_top_dst.x = x_top_left;
-  left_top_dst.y = 250.0;
+  left_top_dst.y = 290;       //250.0;
   left_bottom_dst.x = x_bottom_left;
   left_bottom_dst.y = 420.0;
   right_top_dst.x = x_top_right;
-  right_top_dst.y = 250.0;
+  right_top_dst.y = 290;          //250.0;
   right_bottom_dst.x = x_bottom_right;
   right_bottom_dst.y = 420.0;
 

@@ -19,16 +19,10 @@ def callback(data):
     right_top_y = float(rcv[7])
     x = [left_bot_x, left_top_x, right_bot_x, right_top_x]
     y = [left_bot_y, left_top_y, right_bot_y, right_top_y]
-
-    plt.plot(x, y, 'bo')
-    plt.xlabel('x')
-    plt.ylabel('f(x)')
-    plt.show()
-    time.sleep(0.5)
-    plt.close()
+    plt.plot(y, x, 'bo')
+    plt.show();
 
 def listener():
-
     # In ROS, nodes are uniquely named. If two nodes with the same
     # name are launched, the previous one is kicked off. The
     # anonymous=True flag means that rospy will choose a unique
