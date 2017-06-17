@@ -135,11 +135,24 @@ void webcamCallback(const sensor_msgs::Image::ConstPtr& incoming_image)
   // Initialize the cropped image with two lines, which the user can choose.
   if(init_counter == 0)
   {
+    // Prompt user to select two lines on the cropped input image.
+    setCtrlPts(src_roi);
+    // Transform and save x, y to rho, theta.
+    Eigen::Vector2f polar_parameters;
+    // Left line.
+    polar_parameters = getRhoAndTheta(init_points[0].x, init_points[1].x, init_points[0].y, init_points[1].y);
+    theta_left_rad = polar_parameters[0];
+    rho_left = polar_parameters[1];
+    // Right line;
+    polar_parameters = getRhoAndTheta(init_points[2].x, init_points[3].x, init_points[2].y, init_points[3].y);
+    theta_right_rad = polar_parameters[0];
+    rho_right = polar_parameters[1];
+
     // Set the default values as initial value.
-    theta_left_rad = default_left[1];
-    theta_right_rad = default_right[1];
-    rho_left = default_left[0];
-    rho_right = default_right[0];
+    default_left[1] = theta_left_rad;
+    default_right[1] = theta_right_rad;
+    default_left[0] = rho_left;
+    default_right[0] = rho_right;
 
     float top_crossing_x_left = rho_left*cos(theta_left_rad) - sin(theta_left_rad)*((0 - rho_left*sin(theta_left_rad))/(cos(theta_left_rad)));
     float bottom_crossing_x_left = rho_left*cos(theta_left_rad) - sin(theta_left_rad)*((src_roi.rows - rho_left*sin(theta_left_rad))/(cos(theta_left_rad)));
