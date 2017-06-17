@@ -2,7 +2,9 @@
 #include <cv_bridge/cv_bridge.h>
 #include <cmath>
 #include <Eigen/Dense>
+#include <fstream>
 #include <iostream>
+#include <vector>
 #include "opencv2/highgui/highgui.hpp"
 #include "ros/ros.h"
 #include "sensor_msgs/Image.h"
@@ -18,7 +20,9 @@ float theta_left_rad;
 float rho_left;
 float theta_right_rad;
 float rho_right;
-float parallel_distance;
+float alpha_deg;
+float beta_deg;
+
 // Camera intrinsics.
 float camera_height = 1.3;
 float camera_angle = PI/2.0;
@@ -39,14 +43,27 @@ Mat src_roi;
 Mat dst;
 // The final image with only two lines in cropped image.
 Mat dst_roi;
-// Track the updates.
+// Updates.
 int update_counter_left = 0;
 int update_counter_right = 0;
+bool draw_left = 1;
+bool draw_right = 1;
+Vec2f default_left(-229.39, -2.4081);
+Vec2f default_right(-200.435, 2.12559);
+float default_alpha;
+float default_beta;
+int reset_trigger = 20;
+float del_alpha_limit = 5;
+float del_beta_limit = 5;
+float del_rho_left_limit = 50;
+float del_rho_right_limit = 10;
 
 // FUNCTION DECLARATIONS.
 // NIKHILESH'S FUNCTIONS.
 // Callback function which fetches new images and gets shit done.
 void webcamCallback(const sensor_msgs::Image::ConstPtr& incoming_image);
+// New method to filter out the lines vector to find only two lines.
+void filterLines();
 // Funtion which  filters the found Hough-Lines in order to find only two lines anymore.
 void findTwoNearLines();
 // Callback function for setMouseCallback and returns the point clicked on.
@@ -107,8 +124,8 @@ void webcamCallback(const sensor_msgs::Image::ConstPtr& incoming_image)
     std::cout<<"Got bad image from webcam!"<<std::endl;
   }
   // Flip and save the image to global variable.
-  //cv::flip(cv_ptr->image, src, -1);
-  src = cv_ptr->image;
+  cv::flip(cv_ptr->image, src, -1);
+  //src = cv_ptr->image;
   dst = src.clone();
 
   // Crop src to ROI.
@@ -118,74 +135,303 @@ void webcamCallback(const sensor_msgs::Image::ConstPtr& incoming_image)
   // Initialize the cropped image with two lines, which the user can choose.
   if(init_counter == 0)
   {
+    // Set the default values as initial value.
+    theta_left_rad = default_left[1];
+    theta_right_rad = default_right[1];
+    rho_left = default_left[0];
+    rho_right = default_right[0];
+
+    float top_crossing_x_left = rho_left*cos(theta_left_rad) - sin(theta_left_rad)*((0 - rho_left*sin(theta_left_rad))/(cos(theta_left_rad)));
+    float bottom_crossing_x_left = rho_left*cos(theta_left_rad) - sin(theta_left_rad)*((src_roi.rows - rho_left*sin(theta_left_rad))/(cos(theta_left_rad)));
+    
+    std::cout<<top_crossing_x_left<<" <-> "<<bottom_crossing_x_left<<std::endl;
+
+    float top_crossing_x_right = rho_right*cos(theta_right_rad) - sin(theta_right_rad)*((0 - rho_right*sin(theta_right_rad))/(cos(theta_right_rad)));
+    float bottom_crossing_x_right = rho_right*cos(theta_right_rad) - sin(theta_right_rad)*((src_roi.rows - rho_right*sin(theta_right_rad))/(cos(theta_right_rad)));
+
+    float del_x = std::abs(top_crossing_x_left - bottom_crossing_x_left);
+    float del_y = std::abs(src_roi.rows);
+    float m = del_y/del_x;
+    alpha_deg = 45.0;    //std::atan(m)*180.0/PI;
+
+    del_x = std::abs(top_crossing_x_right - bottom_crossing_x_right);
+    del_y = std::abs(src_roi.rows);
+    m = del_y/del_x;
+    beta_deg = std::atan(m)*180.0/PI;
+
+    default_alpha = alpha_deg;
+    default_beta = beta_deg;
+
+    std::cout<<"Alpha deg: "<<alpha_deg<<std::endl;
+
     // Avoid another initialization when function gets called again.
     init_counter = init_counter + 1;
-
-    // Prompt user to select two lines on the cropped input image.
-    //setCtrlPts(src_roi);
-    // Transform and save x, y to rho, theta.
-    //Eigen::Vector2f polar_parameters;
-    // Left line.
-    //polar_parameters = getRhoAndTheta(init_points[0].x, init_points[1].x, init_points[0].y, init_points[1].y);
-    //theta_left_rad = polar_parameters[0];
-    //rho_left = polar_parameters[1];
-    // Right line;
-    //polar_parameters = getRhoAndTheta(init_points[2].x, init_points[3].x, init_points[2].y, init_points[3].y);
-    //theta_right_rad = polar_parameters[0];
-    //rho_right = polar_parameters[1];
-    theta_left_rad = -2.4081;
-    theta_right_rad = 2.12559;
-    rho_left = -229.39;
-    rho_right = -200.435;
   }
 
   // Hough-Transform.
   vector<Vec2f> test0 = HoughClassic (src_roi);
   vector<Vec2f> test1 = GrayProperty(src_roi);
-  vector<Vec2f> test2 = InRange(src_roi);
+  //vector<Vec2f> test2 = InRange(src_roi);
   vector<Vec2f> test3 = CompareGray (src_roi);
-
-  //std::cout<<"Size of test0 vector: "<< test0.size()<< std::endl;
-  //std::cout<<"Size of test1 vector: "<< test1.size()<< std::endl;
-  //std::cout<<"Size of test2 vector: "<< test2.size()<< std::endl;
-  //std::cout<<"Size of test3 vector: "<< test3.size()<< std::endl;
 
   // Append all vectors.
   lines.insert(lines.end(), test0.begin(), test0.end());
   lines.insert(lines.end(), test1.begin(), test1.end());
-  lines.insert(lines.end(), test2.begin(), test2.end());
+  //lines.insert(lines.end(), test2.begin(), test2.end());
   lines.insert(lines.end(), test3.begin(), test3.end());
 
-  std::cout<<"Size of lines vector: "<< lines.size()<< std::endl;
+  std::cout<<"Found lines in image: "<< lines.size()<< std::endl;
 
-  // Iterate through all lines, which were found by Hough to find the two lines which are closest to the previous two lines.
-  findTwoNearLines();
+  // Filter all detected lines to find left and right line and saves to global variables.
+  //findTwoNearLines();
+  // New function to filter out.
+  filterLines();
 
-  // Draw the two found lines in the original image.
-  //drawTwoLinesOriginal(dst);
-  cv::Mat orig = src.clone();
-  cv::medianBlur(orig, orig, 15);
-  cv::Canny(orig, orig, 30, 50);
-  cv::cvtColor(orig, orig, CV_GRAY2BGR);
+  // Draw all lines into cropped image.
+  Mat all_lines = src.clone();
+  all_lines = all_lines(Rect(0, 250, 640, 170));
+  drawLinesToImage(all_lines, lines);
 
-  drawTwoLinesOriginal(orig);
-  drawTwoLinesOriginal(dst);
-
-  //Mat all_lines = src_roi.clone();
-  //drawLinesToImage(all_lines, lines);
-  // drawTwoLinesCropped(dst_roi);
-
-  // std::cout<<"Theta Left: "<<theta_left_rad<<std::endl;
-  // std::cout<<"Theta Right: "<<theta_right_rad<<std::endl;
 
   // Show filtered hough lines in original image.
-  //imshow("All lines", all_lines);
-  imshow("Result 1", orig);
-  imshow("Result 2", dst);
-  // imshow("Result_ROI", dst_roi);
+  drawTwoLinesOriginal(dst);
+  imshow("Result", dst);
+  
+  imshow("All lines", all_lines);
   waitKey(1);
   lines.clear();
 }
+
+// New method to filter out the lines vector to find only two lines.
+void filterLines()
+{
+  // At a first step, remove all lines passing through the VI sensor.
+  vector<Vec2f> lines_temporary;
+  for(int i = 0; i<lines.size(); i++)
+  { 
+    float x_middle = src_roi.cols/2.0;
+    float y_middle = (-cos(lines[i][1])/sin(lines[i][1]))*x_middle + (lines[i][0])/sin(lines[i][1]);
+    if(y_middle < 85)
+    {
+      lines_temporary.push_back(lines[i]);
+    }
+  }
+  lines = lines_temporary;
+
+  vector<Vec2f> lines_left;
+  vector<Vec2f> lines_right;
+
+  // Check if any of the lines haven't been updated for a long time (always kept constant from previous frame).
+  // If any line wasn't updated for long time: Set that line back to default and a bool, such that this line doesn't get drawn in.
+  if((update_counter_left > reset_trigger) && (update_counter_right > reset_trigger))
+  {
+    // Reset both.
+    draw_left = 0;
+    draw_right = 0;
+    rho_left = default_left[0];
+    theta_left_rad = default_left[1];
+    rho_right = default_right[0];
+    theta_right_rad = default_right[1];
+    alpha_deg = default_alpha;
+    beta_deg = default_beta;
+  }
+  else if((update_counter_left > reset_trigger) && (update_counter_right < reset_trigger))
+  {
+    // Reset left.
+    draw_left = 0;
+    rho_left = default_left[0];
+    theta_left_rad = default_left[1];
+    alpha_deg = default_alpha;
+
+  }
+  else if((update_counter_left < reset_trigger) && (update_counter_right > reset_trigger))
+  {
+    // Reset right.
+    draw_right = 0;
+    rho_left = default_left[0];
+    theta_left_rad = default_left[1];
+    beta_deg = default_beta;
+  }
+
+  // For loop: Split the lines vector to a left and a right vector. Only assign those where the gradient angle is below a specific threshold.
+  if(lines.size() > 0)
+  {
+    for(int i = 0; i<lines.size(); i++)
+    {      
+      float top_crossing_x = lines[i][0]*cos(lines[i][1]) - sin(lines[i][1])*((0 - lines[i][0]*sin(lines[i][1]))/(cos(lines[i][1])));
+      float bottom_crossing_x = lines[i][0]*cos(lines[i][1]) - sin(lines[i][1])*((src_roi.rows - lines[i][0]*sin(lines[i][1]))/(cos(lines[i][1])));
+      // Assign left line.
+      if((bottom_crossing_x < src_roi.cols/2.0) && (bottom_crossing_x > - 320))
+      {
+        float del_x = std::abs(top_crossing_x - bottom_crossing_x);
+        float del_y = std::abs(src_roi.rows);
+        float m = del_y/del_x;
+        float alpha = std::atan(m)*180.0/PI;
+        float del_rho = std::abs(rho_left - lines[i][0]);
+        if((std::abs(alpha - alpha_deg) < del_alpha_limit))
+        {
+          lines_left.push_back(lines[i]);
+
+        }
+      }
+      // Assign right line.
+     else if((bottom_crossing_x > src_roi.cols/2.0) && (bottom_crossing_x < 960))
+      {
+        float del_x = std::abs(top_crossing_x - bottom_crossing_x);
+        float del_y = std::abs(src_roi.rows);
+        float m = del_y/del_x;
+        float beta = std::atan(m)*180.0/PI;
+        float del_rho = std::abs(rho_right - lines[i][0]);
+        if((std::abs(beta - beta_deg) < del_beta_limit) && (del_rho < del_rho_right_limit))
+        {
+          lines_right.push_back(lines[i]);
+        }
+      }
+    } 
+  }
+
+  // Only left lines vector has elements.
+  if((lines_left.size() > 0) && (lines_right.size() == 0))
+  {
+    float cost_left = 100.0;
+    int index_minimal_cost_left = 0;
+    for(int i = 0; i < lines_left.size(); i++)
+    {
+      // For each line calculate the relative error in rho.
+      float rel_error_rho_left_loop = (lines_left[i][0] - rho_left)/rho_left;
+      // For each line calculate the relative error in theta.
+      float rel_error_theta_left_loop = (lines_left[i][1] - theta_left_rad)/theta_left_rad;
+      // For each line calculate a cost function.
+      float cost_left_loop = sqrt(pow(rel_error_rho_left_loop, 2) + pow(rel_error_theta_left_loop, 2));
+      // If the cost is lower than the previous, save the line as the correct one.
+      if(cost_left_loop < cost_left)
+      {
+        index_minimal_cost_left = i;
+        cost_left = cost_left_loop;
+      }
+     }
+     // Update.
+     rho_left = lines_left[index_minimal_cost_left][0];
+     theta_left_rad = lines_left[index_minimal_cost_left][1];
+     update_counter_left = 0;
+     update_counter_right += 1;
+     draw_left = 1;
+  }
+  // Only right lines vector has elements.
+  else if((lines_left.size() == 0) && (lines_right.size() > 0))
+  {
+    float cost_right = 100.0;
+    int index_minimal_cost_right = 0;
+    for(int i = 0; i < lines_right.size(); i++)
+    {
+      // For each line calculate the relative error in rho.
+      float rel_error_rho_right_loop = (lines_right[i][0] - rho_right)/rho_right;
+      // For each line calculate the relative error in theta.
+      float rel_error_theta_right_loop = (lines_right[i][1] - theta_right_rad)/theta_right_rad;
+      // For each line calculate a cost function.
+      float cost_right_loop = sqrt(pow(rel_error_rho_right_loop, 2) + pow(rel_error_theta_right_loop, 2));
+      // If the cost is lower than the previous, save the line as the correct one.
+      if(cost_right_loop < cost_right)
+      {
+        index_minimal_cost_right = i;
+        cost_right = cost_right_loop;
+      }
+     }
+     // Update.
+     rho_right = lines_right[index_minimal_cost_right][0];
+     theta_right_rad = lines_right[index_minimal_cost_right][1];
+     update_counter_right = 0;
+     update_counter_left += 1;
+     draw_right = 1;
+  }
+  else if((lines_left.size()> 0) && (lines_right.size() > 0))
+  {
+    float cost_left = 100.0;
+    int index_minimal_cost_left = 0;
+    for(int i = 0; i < lines_left.size(); i++)
+    {
+      // For each line calculate the relative error in rho.
+      float rel_error_rho_left_loop = (lines_left[i][0] - rho_left)/rho_left;
+      // For each line calculate the relative error in theta.
+      float rel_error_theta_left_loop = (lines_left[i][1] - theta_left_rad)/theta_left_rad;
+      // For each line calculate a cost function.
+      float cost_left_loop = sqrt(pow(rel_error_rho_left_loop, 2) + pow(rel_error_theta_left_loop, 2));
+      // If the cost is lower than the previous, save the line as the correct one.
+      if(cost_left_loop < cost_left)
+      {
+        index_minimal_cost_left = i;
+        cost_left = cost_left_loop;
+      }
+     }
+    float cost_right = 100.0;
+    int index_minimal_cost_right = 0;
+    for(int i = 0; i < lines_right.size(); i++)
+    {
+      // For each line calculate the relative error in rho.
+      float rel_error_rho_right_loop = (lines_right[i][0] - rho_right)/rho_right;
+      // For each line calculate the relative error in theta.
+      float rel_error_theta_right_loop = (lines_right[i][1] - theta_right_rad)/theta_right_rad;
+      // For each line calculate a cost function.
+      float cost_right_loop = sqrt(pow(rel_error_rho_right_loop, 2) + pow(rel_error_theta_right_loop, 2));
+      // If the cost is lower than the previous, save the line as the correct one.
+      if(cost_right_loop < cost_right)
+      {
+        index_minimal_cost_right = i;
+        cost_right = cost_right_loop;
+      }
+     }
+     // Update.
+     rho_left = lines_left[index_minimal_cost_left][0];
+     theta_left_rad = lines_left[index_minimal_cost_left][1];
+     rho_right = lines_right[index_minimal_cost_right][0];
+     theta_right_rad = lines_right[index_minimal_cost_right][1];
+     update_counter_left = 0;
+     update_counter_right = 0;
+     draw_left = 1;
+     draw_right = 1;
+  }
+  else if((lines_left.size() == 0) && (lines_right.size() == 0))
+  {
+    update_counter_left += 1;
+    update_counter_right += 1;
+  }
+
+    float top_crossing_x_left = rho_left*cos(theta_left_rad) - sin(theta_left_rad)*((0 - rho_left*sin(theta_left_rad))/(cos(theta_left_rad)));
+    float bottom_crossing_x_left = rho_left*cos(theta_left_rad) - sin(theta_left_rad)*((src_roi.rows - rho_left*sin(theta_left_rad))/(cos(theta_left_rad)));
+
+    float top_crossing_x_right = rho_right*cos(theta_right_rad) - sin(theta_right_rad)*((0 - rho_right*sin(theta_right_rad))/(cos(theta_right_rad)));
+    float bottom_crossing_x_right = rho_right*cos(theta_right_rad) - sin(theta_right_rad)*((src_roi.rows - rho_right*sin(theta_right_rad))/(cos(theta_right_rad)));
+
+    float del_x = std::abs(top_crossing_x_left - bottom_crossing_x_left);
+    float del_y = std::abs(src_roi.rows);
+    float m = del_y/del_x;
+    alpha_deg = std::atan(m)*180.0/PI;
+
+    del_x = std::abs(top_crossing_x_right - bottom_crossing_x_right);
+    del_y = std::abs(src_roi.rows);
+    m = del_y/del_x;
+    beta_deg = std::atan(m)*180.0/PI;
+
+
+  // Only candidates for left lines.
+    // Find the nearest line to the previous frame.
+      // Set a bool for left, such that left line gets drawn.
+      // Set counter for left to zero.
+      // Increase counter for right, that no update has been done.
+  // Only candidates for right lines.
+    // Find the nearest line to the previous frame.
+      // Set a bool for right, such that right line gets drawn.
+      // Set counter for right to zero.
+      // Increase counter for left, that no update has been done.
+  // Candidates for left and right lines.
+   // Find the nearest lines to the previous frame.
+   // Set the bool, such that both lines will be drawn.
+   // Set both counter to zero.
+  // No candidates at all.
+   // Do nothing, such that the both line will be kept the same.
+   // Increase a counter, that no update for both.
+}
+
 
 // Function which  filters the found Hough-Lines in order to find only two lines anymore.
 void findTwoNearLines()
@@ -228,8 +474,9 @@ void findTwoNearLines()
       float bottom_crossing_x = lines[i][0]*cos(lines[i][1]) - sin(lines[i][1])*((src_roi.rows - lines[i][0]*sin(lines[i][1]))/(cos(lines[i][1])));
       if((bottom_crossing_x < src_roi.cols/2.0) && (bottom_crossing_x > - 320))
       {
-        float rel_error_theta_left = std::abs(1.0 - lines[i][1]/theta_left_rad);
-        if(lines[i][1] < 1.3)
+        //float rel_error_theta_left = std::abs(1.0 - lines[i][1]/theta_left_rad);
+        float delta_theta_left = std::abs(theta_left_rad - lines[i][1]);
+        if(lines[i][1] < 1.3)    //(lines[i][1] < 1.3)(delta_theta_left<5)
         {
           lines_left.push_back(lines[i]);
         }
@@ -237,7 +484,8 @@ void findTwoNearLines()
       if((bottom_crossing_x > src_roi.cols/2.0) && (bottom_crossing_x < 960))
       {
         float rel_error_theta_right = std::abs(1.0 - lines[i][1]/theta_right_rad);
-        if(rel_error_theta_right < 0.5)
+        float delta_theta_right = std::abs(theta_right_rad - lines[i][1]);
+        if(rel_error_theta_right < 0.5)  // (delta_theta_right<0.2)
         {
           lines_right.push_back(lines[i]);
         }
@@ -315,119 +563,7 @@ void findTwoNearLines()
     update_counter_right += 1;
     std::cout<<"No lines found at all!"<<std::endl;
   }
-
-  // Based on update_counter_left and update_counter_right, decide if: Extrapolate left from right, extrapolate right from left or take previous parameters.
-  /*if((update_counter_left > 0) && (update_counter_right == 0))
-  {
-    // Extrapolate left line, using right line and lateral distance from last frame.
-    // 1. Get two points in the imag which define the RIGHT Line.
-    // Image coordinates as defined in manuscript.
-    Point right_far_img;
-    Point right_near_img;
-
-    float y_top_roi = 0.0;
-    float y_bottom_roi = src_roi.rows;
-
-    right_far_img.x = rho_right*cos(theta_right_rad) - sin(theta_right_rad)*((y_top_roi - rho_right*sin(theta_right_rad))/(cos(theta_right_rad)));
-    right_near_img.x = rho_right*cos(theta_right_rad) - sin(theta_right_rad)*((y_bottom_roi - rho_right*sin(theta_right_rad))/(cos(theta_right_rad)));
-    right_far_img.y = 250.0;
-    right_near_img.y = 420.0;
-
-    // 2. Using IPM-matrices, transform the two image points to world points in the local vehicle frame.
-    // World coordinates as defined in manuscript.
-    Point right_far_world;
-    Point right_near_world;
-    // 2a. Calculate the lambda from equation (7) to see, where the ray crosses the ground/street-plane.
-    float lambda_right_far = camera_height/(focal_length*cos(camera_angle) - (src.rows/2.0 - right_far_img.y)*sin(camera_angle));
-    float lambda_right_near = camera_height/(focal_length*cos(camera_angle) - (src.rows/2.0 - right_near_img.y)*sin(camera_angle));
-    // 2b. Knowing lambda, calculate the projections of the two points on the groundplane.
-    right_far_world.x = lambda_right_far*(cos(camera_angle)*(src.rows/2.0 - right_far_img.y) + focal_length*sin(camera_angle));
-    right_far_world.y = lambda_right_far*(-1.0)*(right_far_img.x - src.cols/2.0);
-    right_near_world.x = lambda_right_near*(cos(camera_angle)*(src.rows/2.0 - right_near_img.y) + focal_length*sin(camera_angle));;
-    right_near_world.y = lambda_right_near*(-1.0)*(right_near_img.x - src.cols/2.0);
-
-    // 3. Find the directional vector of those two world points, find the left-facing normal vector (in world coordinates).
-    Point2f dir_right;
-    Point2f norm_right;
-
-    dir_right.x = right_far_world.x - right_near_world.x;
-    dir_right.y = right_far_world.y - right_near_world.y;
-
-    norm_right.x = -dir_right.y/sqrt(pow(dir_right.x, 2) + pow(dir_right.y, 2));
-    norm_right.y = dir_right.x/sqrt(pow(dir_right.x, 2) + pow(dir_right.y, 2));
-    // 4. Using the normal vector, the parallel_distance and one point of the right line, find a point on the left line.
-    // World coordinates as defined in manuscript.
-    Point left_near_world;
-
-    left_near_world.x = right_near_world.x + parallel_distance*norm_right.x;
-    left_near_world.y = right_near_world.y + parallel_distance*norm_right.y;
-    // 5. Find another point on the left line.
-    Point left_far_world;
-
-    left_far_world.x = right_far_world.x + parallel_distance*norm_right.x;
-    left_far_world.y = right_far_world.y + parallel_distance*norm_right.y;
-
-    std::cout<<"Left Far: "<<left_far_world<<std::endl;
-    std::cout<<"Right Far: "<<right_far_world<<std::endl;
-    std::cout<<"Left Near: "<<left_near_world<<std::endl;
-    std::cout<<"Right Near: "<<right_near_world<<std::endl;
-    // 6. Transform the two left line's point to the image, using PM.
-    // Transform to camera coordinate system.
-    Point3f left_far_camera;
-    Point3f left_near_camera;
-
-    left_far_camera.x = 0*(left_far_world.x) -1.0*(left_far_world.y) + 0*(-camera_height);
-    left_far_camera.y = cos(camera_angle)*(left_far_world.x) + 0*(left_far_world.y) + sin(camera_angle)*(-camera_height);
-    left_far_camera.z = -sin(camera_angle)*(left_far_world.x) + 0*(left_far_world.y) + cos(camera_angle)*(-camera_height);
-
-    left_near_camera.x = 0*(left_near_world.x) -1.0*(left_near_world.y) + 0*(-camera_height);
-    left_near_camera.y = cos(camera_angle)*(left_near_world.x) + 0*(left_near_world.y) + sin(camera_angle)*(-camera_height);
-    left_near_camera.z = -sin(camera_angle)*(left_near_world.x) + 0*(left_near_world.y) + cos(camera_angle)*(-camera_height);
-    // Transform to pixels. In image coordinates.
-    float lambda_px_left_far = -focal_length/(left_far_camera.z);
-    float lambda_px_left_near = -focal_length/(left_near_camera.z);
-
-    cv::Point2f left_far;
-    cv::Point2f left_near;
-
-    left_far.x = lambda_px_left_far*left_far_camera.x + src.cols/2.0;
-    left_far.y = src.cols/2.0 - lambda_px_left_far*left_far_camera.y;
-    left_near.x = lambda_px_left_near*left_near_camera.x + src.cols/2.0;
-    left_near.y = src.cols/2.0 - lambda_px_left_near*left_near_camera.y;
-    // 7. Convert to rho, theta for the cropped image.
-    // Get rho and theta.
-    Eigen::Vector2f params_left = getRhoAndTheta(left_near.x, left_far.x, left_near.y, left_far.y);
-
-    theta_left_rad = params_left[0];
-    rho_left = params_left[1];
-
-    std::cout<<"Extrapolated left from right."<<std::endl;
-    // Only for now.
-    update_counter_left = 0;
-  }
-  else if((update_counter_left == 0) && (update_counter_right > 0))
-  {
-    // Extrapolate right line, using left line and lateral distance from last frame.
-    // 1. Get two points in the image which define the LEFT Line.
-    // 2. Using IPM-matrices, transform the two image points to world points in the local vehicle frame.
-    // 3. Find the directional vector of those two world points, find the right-facing normal vector.
-    // 4. Using the normal vector, the parallel_distance and one point of the left line, find a point on the right line.
-    // 5. Find another point on the right line, using the left line's directional vector.
-    // 6. Transform the two right line's point to the image, using PM.
-    // 7. Convert to rho_right, theta_right_rad and save them to global variables.
-
-    // FOR NOW: JUST LEAVE IT TO THE OLD VALUES OR THE ONES WHICH WERE ACTUALLY FOUND.
-  }
-  else if((update_counter_left > 0) && (update_counter_right > 0))
-  {
-    // Just take the previous parameters. --> Do nothing, do not change the parameters.
-  }
-
-  // Final step: Calculate parallel_distance,...
-  parallel_distance = 3;
-  */
 }
-
 
 // Callback function for setMouseCallback and returns the point clicked on.
 void getClickedPixel(int event, int x, int y, int flags, void *ptr)
@@ -471,18 +607,6 @@ Eigen::Vector2f getRhoAndTheta(float x_a, float x_b, float y_a, float y_b)
   // Calculate theta.
   float theta = atan2(x_a - x_b, y_b - y_a);
   std::cout<<"Calculated theta: "<<theta<<std::endl;
-  /*
-  // Solve linear system of equation to find rho.
-  Eigen::Matrix2f A;
-  Eigen::Vector2f b;
-  A << sin(theta),(y_a - y_b),cos(theta),(x_b - x_a);
-  b << y_a,x_a;
-  //cout << "Here is the matrix A:\n" << A << endl;
-  //cout << "Here is the vector b:\n" << b << endl;
-  Eigen::Vector2f x = A.colPivHouseholderQr().solve(b);
-  //cout << "The solution is:\n" << x << endl;
-  float rho = x[0];
-  */
 
   // New method to calculate rho.
   float rho_nom = x_a + y_a*((x_a - x_b)/(y_b - y_a));
@@ -521,8 +645,14 @@ void drawTwoLinesOriginal(Mat &image_to_draw)
   right_bottom_dst.x = x_bottom_right;
   right_bottom_dst.y = 420.0;
 
-  line(image_to_draw, left_top_dst, left_bottom_dst, Scalar(0, 255, 0), 3, CV_AA);
-  line(image_to_draw, right_top_dst, right_bottom_dst, Scalar(0, 255, 0), 3, CV_AA);
+  if(draw_left == true)
+  {
+      line(image_to_draw, left_top_dst, left_bottom_dst, Scalar(0, 255, 0), 3, CV_AA);
+  }
+  if(draw_right == true)
+  {
+    line(image_to_draw, right_top_dst, right_bottom_dst, Scalar(0, 255, 0), 3, CV_AA);
+  }
 }
 
 // Function to draw the detected lines with the current rho and theta into an image of the cropped size.
@@ -587,43 +717,46 @@ void showImage(Mat show, string name)
 	//Open new window and show the image. 
 	namedWindow(name, CV_WINDOW_AUTOSIZE );
 	imshow(name, show);
-  	waitKey(1);
+  waitKey(1);
 }
+
 // Does the Hough-Transform and draws the lines.
 void houghTransform(Mat contours, Mat &draw_to, vector<Vec2f> &lines_hT, int threshold)
 {
   //Hough transform. Parameter to be determined.
- 	HoughLines(contours, lines_hT, 1, CV_PI/180, threshold, 0, 0);  // war 90.
-	//Iterate through all the lines and draw the line. 
-	for(int i = 0; i < lines_hT.size(); i++)
-	{
-		float rho = lines_hT[i][0];
-		float theta = lines_hT[i][1];
-		// cout << i << "   " <<theta <<endl;
-		Point pt1;
-		Point pt2;
-		double a = cos(theta);
-		double b = sin(theta);
-		double x0 = a*rho;
-		double y0 = b*rho;
-		pt1.x = cvRound(x0 + 1000*(-b));
-		pt1.y = cvRound(y0 + 1000*(a));
-		pt2.x = cvRound(x0 - 1000*(-b));
-		pt2.y = cvRound(y0 - 1000*(a));
-		line(draw_to, pt1, pt2, Scalar(0, 255, 0), 3, CV_AA);
-	}
+  HoughLines(contours, lines_hT, 1, CV_PI/180, threshold, 0, 0);  // war 90.
+  //Iterate through all the lines and draw the line. 
+  for(int i = 0; i < lines_hT.size(); i++)
+  {
+    float rho = lines_hT[i][0];
+    float theta = lines_hT[i][1];
+    Point pt1;
+    Point pt2;
+    double a = cos(theta);
+    double b = sin(theta);
+    double x0 = a*rho;
+    double y0 = b*rho;
+    pt1.x = cvRound(x0 + 1000*(-b));
+    pt1.y = cvRound(y0 + 1000*(a));
+    pt2.x = cvRound(x0 - 1000*(-b));
+    pt2.y = cvRound(y0 - 1000*(a));
+    line(draw_to, pt1, pt2, Scalar(0, 255, 0), 3, CV_AA);
+  }
 }
 
-//New functions.
+// Candidate getter functions.
 vector<Vec2f> GrayProperty (Mat src_GP)
-{	
-	vector<Vec2f> lines_GP;
-	Mat contours(src_GP.rows, src_GP.cols, CV_8UC1);
-	//Find gray areas using the function FindGray.
+{ 
+  vector<Vec2f> lines_GP;
+  Mat contours(src_GP.rows, src_GP.cols, CV_8UC1);
+  //Find gray areas using the function FindGray.
   Mat gray = FindGray(src_GP);
-	Canny(gray, contours, 50, 150);
-	houghTransform(contours, src_GP, lines_GP, 40);
-	return lines_GP;
+  //showImage(gray, "FindGray");
+  Canny(gray, contours, 180, 180);
+  //Sobel(gray, contours, CV_16S, 1, 0, 3);
+  showImage(contours, "konturen");
+  houghTransform(contours, src_GP, lines_GP, 30);
+  return lines_GP;
 }
 vector<Vec2f> InRange (Mat src_IR)
 {
@@ -642,23 +775,24 @@ vector<Vec2f> InRange (Mat src_IR)
 }
 vector<Vec2f> CompareGray (Mat src_CG)
 {
-	vector<Vec2f> lines_CG;
-	// showImage(showChannel(src_CG, true, true, true), "RGB");
-	// showImage(RoadThreshold(src_CG), "RoadTreshold");
-	Mat color_contour;
-	//Calculate Canny-image by using the function RoadThreshold;
-	Canny(RoadThreshold(src_CG),  color_contour, 30, 50);
-	// showImage(color_contour, "FarbCanny");
-	Mat show_color_Hough=src_CG;
-	houghTransform(color_contour, show_color_Hough, lines_CG, 70);
-	// showImage(show_color_Hough, "ColorHoug");
-	return lines_CG;
+  vector<Vec2f> lines_CG;
+  Mat src_copy_CG = src_CG.clone();
+  //showImage(showChannel(src_CG, true, true, true), "RGB");
+  // showImage(RoadThreshold(src_CG), "RoadTreshold");
+  Mat color_contour = src_copy_CG.clone();
+  //Calculate Canny-image by using the function RoadThreshold;
+  Canny(RoadThreshold(src_copy_CG),  color_contour, 30, 50);
+  //showImage(color_contour, "FarbCanny");
+  Mat show_color_Hough=src_copy_CG.clone();
+  houghTransform(color_contour, show_color_Hough, lines_CG, 30);
+  // showImage(show_color_Hough, "ColorHoug");
+  return lines_CG;
 }
 Mat showChannel(Mat RGB, bool B, bool G, bool R)
 {
 	//This function is able to spit the color-channels and merge them again, if they are needed.
 	Mat channel[3];
-	Mat result=Mat::zeros(RGB.rows, RGB.cols, CV_8UC3);
+	Mat result = Mat::zeros(RGB.rows, RGB.cols, CV_8UC3);
 	split(RGB, channel);
 	if (B==false)
 		{
@@ -677,115 +811,123 @@ Mat showChannel(Mat RGB, bool B, bool G, bool R)
 }
 Mat RoadThreshold(Mat src_RT)
 {
-	//Calculate the intensity of areas by using the function IntensityOfArea.
-	Vec3b Intensity1 = IntensityOfArea(src_RT, 360, 350, 100, 75);
-	Vec3b Intensity2 = IntensityOfArea(src_RT, 180, 350, 100, 75);
-	float B_average=(Intensity1[0]+Intensity2[0])/2;
-	float G_average=(Intensity1[1]+Intensity2[1])/2;
-	float R_average=(Intensity1[2]+Intensity2[2])/2;
-	//Define black vector.
-	Vec3b black;
-	black[0]=0;
-	black[1]=0;
-	black[2]=0;
-	//Define white vector.
-	Vec3b white;
-	black[0]=255;
-	black[1]=255;
-	black[2]=255;
-	//Iterate through the whole image.
-	for(int y=0;y<src_RT.rows;y++)
-	{
- 		for(int x=0;x<src_RT.cols;x++)
-  		{
-			//Calculate the deviation of the intensity. 
-    			Vec3b color = src_RT.at<Vec3b>(Point(x,y));
-			float B_delta_sq = ((color[0]-B_average)/B_average)*((color[0]-B_average)/B_average);
-			float G_delta_sq = ((color[1]-G_average)/G_average)*((color[1]-G_average)/G_average);
-			float R_delta_sq = ((color[2]-R_average)/R_average)*((color[2]-R_average)/R_average);
-			//Threshold the image.
-			if ( (B_delta_sq<0.05) && (G_delta_sq<0.05) && (R_delta_sq<0.05))
-			{
-				src_RT.at<Vec3b>(Point(x,y))=black;
-			}
-			else
-			{
-				src_RT.at<Vec3b>(Point(x,y))=white;
-			}
-		}
-	}
-	return src_RT;
+  //Calculate the intensity of areas by using the function IntensityOfArea.
+  Vec3b Intensity1 = IntensityOfArea(src_RT, 360, 250, 100, 75);
+  Vec3b Intensity2 = IntensityOfArea(src_RT, 180, 250, 100, 75);
+  float B_average = (Intensity1[0]+Intensity2[0])/2;
+  float G_average = (Intensity1[1]+Intensity2[1])/2;
+  float R_average = (Intensity1[2]+Intensity2[2])/2;
+  //Define black vector.
+  Vec3b black;
+  black[0] = 0;
+  black[1] = 0;
+  black[2] = 0;
+  //Define white vector.
+  Vec3b white;
+  black[0]=255;
+  black[1]=255;
+  black[2]=255;
+  //Iterate through the whole image.
+  for(int y=0;y<src_RT.rows;y++)
+  {
+    for(int x=0;x<src_RT.cols;x++)
+      {
+      //Calculate the deviation of the intensity. 
+      Vec3b color = src_RT.at<Vec3b>(Point(x,y));
+      float B_delta_sq = ((color[0]-B_average)/B_average)*((color[0]-B_average)/B_average);
+      float G_delta_sq = ((color[1]-G_average)/G_average)*((color[1]-G_average)/G_average);
+      float R_delta_sq = ((color[2]-R_average)/R_average)*((color[2]-R_average)/R_average);
+      //Threshold the image.
+      if ( (B_delta_sq < 0.08) && (G_delta_sq<0.08) && (R_delta_sq<0.08))
+      {
+        src_RT.at<Vec3b>(Point(x,y)) = black;
+      }
+      else
+      {
+        src_RT.at<Vec3b>(Point(x,y)) = white;
+      }
+    }
+  }
+  Mat src_RT_U(src_RT.rows, src_RT.cols, CV_8U);
+  Mat src_RT_U_filtered(src_RT.rows, src_RT.cols, CV_8U);
+  cvtColor(src_RT, src_RT_U, cv::COLOR_RGB2GRAY);
+  medianBlur(src_RT_U, src_RT_U_filtered, 15);  
+  // showImage(src_RT_U_filtered, "RoadThreshold");
+  return src_RT_U_filtered;
 }
 Vec3b IntensityOfArea(Mat &src_IOA, int x_gray, int y_gray, int width_gray, int height_gray)
 {
-	//This function calculate the averaged intensity of alle color-channels of a fixed region of a image.
-	Rect region_gray = Rect(x_gray, y_gray, width_gray, height_gray);
-	rectangle(src_IOA, region_gray, Scalar(0, 255, 0));
-  	Mat src_gray = src(region_gray);
-	float B_average=0;
-	float G_average=0;
-	float R_average=0;
-	for(int y=0;y<src_gray.rows;y++)
-	{
- 		for(int x=0;x<src_gray.cols;x++)
-  		{
-    		Vec3b color = src_gray.at<Vec3b>(Point(x,y));
-		B_average=B_average+color[0];
-		G_average=G_average+color[1];
-		R_average=R_average+color[2];
-		}
-	}
-	B_average=B_average/(src_gray.rows*src_gray.cols);
-	G_average=G_average/(src_gray.rows*src_gray.cols);
-	R_average=R_average/(src_gray.rows*src_gray.cols);
-	Vec3b intensity;
-	intensity[0]=B_average;
-	intensity[1]=G_average;
-	intensity[2]=R_average;
-	return intensity;
+  //This function calculate the averaged intensity of alle color-channels of a fixed region of a image.
+  Rect region_gray = Rect(x_gray, y_gray, width_gray, height_gray);
+  rectangle(src_IOA, region_gray, Scalar(255, 255, 255), 10);
+  //showImage(src_IOA, "infunction ");
+  Mat src_gray = src(region_gray);
+  float B_average=0;
+  float G_average=0;
+  float R_average=0;
+  for(int y=0;y<src_gray.rows;y++)
+  {
+    for(int x=0;x<src_gray.cols;x++)
+      {
+        Vec3b color = src_gray.at<Vec3b>(Point(x,y));
+    B_average=B_average+color[0];
+    G_average=G_average+color[1];
+    R_average=R_average+color[2];
+    }
+  }
+  B_average=B_average/(src_gray.rows*src_gray.cols);
+  G_average=G_average/(src_gray.rows*src_gray.cols);
+  R_average=R_average/(src_gray.rows*src_gray.cols);
+  Vec3b intensity;
+  intensity[0]=B_average;
+  intensity[1]=G_average;
+  intensity[2]=R_average;
+  return intensity;
 }
 Mat FindGray(Mat src_FG)
 {
-	Mat blur = src_FG.clone();
-	//medianBlur(src, blur, 7);
-	Mat result(src_FG.rows, src_FG.cols, CV_8UC1);
-	int sum;
-	//
-	for(int y = 0;y < src_FG.rows; y++)
-	{
- 		for(int x = 0; x<src_FG.cols; x++)
-  	{
-    		Vec3b color = src_FG.at<Vec3b>(Point(x,y));
-		      if( (color[0]>220) || (color[1]>220) || (color[2]>220))
-		        {
-			        sum = 255;
-		        }
-		else
-		{
-			int bg=color[0]-color[1];
-			int br=color[0]-color[2];
-			int gr=color[1]-color[2];
-			sum=(abs(bg)+abs(br)+abs(gr));
-		}
-		result.at<uchar>(Point(x,y))=sum;
-		}
-	}
-	medianBlur(result, blur, 7);
-	return blur;
+  Mat blur = src_FG.clone();
+  //medianBlur(src, blur, 7);
+  Mat result_FG(src_FG.rows, src_FG.cols, CV_8UC1);
+  int sum;
+  for(int y = 0;y < src_FG.rows; y++)
+  {
+    for(int x = 0; x<src_FG.cols; x++)
+    {
+        Vec3b color = src_FG.at<Vec3b>(Point(x,y));
+          if( (color[0]>220) || (color[1]>220) || (color[2]>220))
+            {
+              sum = 255;
+            }
+         else
+            {
+              int bg = color[0]-color[1];
+              int br = color[0]-color[2];
+              int gr = color[1]-color[2];
+              sum = (abs(bg) + abs(br) + abs(gr));
+            }
+        result_FG.at<uchar>(Point(x,y)) = sum;
+    }
+  }
+  threshold(result_FG, blur, 35, 255, THRESH_BINARY);
+  medianBlur(blur, blur, 15);
+  //showImage(blur, "thresholded image");
+  return blur;
 }
 
 vector<Vec2f> HoughClassic (Mat src_HC)
 {
   // Filter the image.
   Mat src_HC_roi_filtered = src_HC.clone();
-  medianBlur(src_HC, src_HC_roi_filtered, 15);
+  medianBlur(src_HC, src_HC_roi_filtered, 5);
 
   Mat contours = src_HC_roi_filtered.clone();
   //Run Canny. Parameter to be determined.
   Canny(src_HC_roi_filtered, contours, 30, 50);
-	Mat draw_detected_hough = src_HC.clone();
+  showImage(contours, "canny image");
+  Mat draw_detected_hough = src_HC.clone();
   vector<Vec2f> lines_HC;
-	//Do HoughTransform.
-  houghTransform(contours, draw_detected_hough, lines_HC, 90);
+  //Do HoughTransform.
+  houghTransform(contours, draw_detected_hough, lines_HC, 80);
   return lines_HC;
 }
