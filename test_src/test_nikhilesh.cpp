@@ -273,18 +273,32 @@ void webcamCallback(const sensor_msgs::Image::ConstPtr& incoming_image)
   Point2f draw_bottom_right_desired(draw_x_right_desired_bottom, draw_y_right_desired_bottom);
   //Draw right line.
   line(visualise, draw_bottom_right_desired, draw_top_right_desired, Scalar(255, 255, 255), 3);
+  //Draw the middle lines. 
+  line(visualise, draw_bottom_right_desired, draw_bottom_left_desired, Scalar(0, 255, 0), 2);
+  arrowedLine(visualise, Point(450, 590), Point(450, 490), Scalar(0, 255, 0), 2);
   //Write the relative error. 
   float draw_distance = draw_x_right_desired_bottom - draw_x_left_desired_bottom;
   float draw_rel_error_right = (draw_x_right_desired_bottom-450)/draw_distance;
   float draw_rel_error_left = (450-draw_x_left_desired_bottom)/draw_distance;
   ostringstream ss_left;
-  ss_left << draw_rel_error_left << " %%";
+  putText(visualise, "Relative Lateral Error", Point(320, 290), CV_FONT_HERSHEY_DUPLEX, 1, Scalar(0, 255, 0), 2);
+  ss_left << "left: " <<draw_rel_error_left << " %";
   string draw_text_left(ss_left.str());
+  putText(visualise, draw_text_left, Point(320, 330), CV_FONT_HERSHEY_DUPLEX, 1, Scalar(0, 255, 0), 1);
+  ostringstream ss_right;
+  ss_right << "right:" <<draw_rel_error_right << " %";
+  string draw_text_right(ss_right.str());
+  putText(visualise, draw_text_right, Point(320, 360), CV_FONT_HERSHEY_DUPLEX, 1, Scalar(0, 255, 0), 1);
+  //Draw the coordinate system;
+  arrowedLine(visualise, Point(500, 733), Point(500, 718), Scalar(0,0, 255), 2);
+  arrowedLine(visualise, Point(500,733), Point(485, 733), Scalar(0, 0, 255), 2);
+  putText(visualise, "x", Point(505, 720), CV_FONT_HERSHEY_PLAIN, 1, Scalar(0, 0, 255), 2);
+  putText(visualise, "y", Point(485, 749), CV_FONT_HERSHEY_PLAIN, 1, Scalar(0, 0, 255), 2);
 
-  putText(visualise, draw_text_left, Point(50, 50), CV_FONT_HERSHEY_DUPLEX, 1, Scalar(255, 255, 255), 4);
+
+
 
   showImage(visualise, "visalisierung");
-
   ////
 
 
