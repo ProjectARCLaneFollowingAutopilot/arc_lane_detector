@@ -16,6 +16,7 @@
 using namespace cv;
 using namespace std;
 
+vector<float> t_vec;
 // Global variables.
 // ROS specific.
 ros::Publisher publish_lane;
@@ -30,7 +31,7 @@ vector<Point2f> left_line_orig;
 vector<Point2f> right_line_orig;
 
 // For image->world trafo:
-float camera_height = 1.45;
+float camera_height = 1.3;
 float camera_angle = 90.0;
 float focal_length = 628.0;
 IPM ipm_object;
@@ -122,6 +123,14 @@ int main(int argc, char* argv[])
   // Run that shit.
   ros::spin();
 
+  float sum_t = 0;
+  for(int i = 0; i<t_vec.size(); i++)
+  {
+    sum_t = sum_t + t_vec[i];
+  }
+
+  float avg = sum_t/t_vec.size();
+  std::cout<<"Average duration: "<<avg<<" over "<<t_vec.size()<<" iterations."<<std::endl;
   return 0;
 }
 
@@ -130,6 +139,13 @@ int main(int argc, char* argv[])
 // Callback function which fetches new images and gets shit done.
 void webcamCallback(const sensor_msgs::Image::ConstPtr& incoming_image)
 {
+  double t;
+
+  if (init_counter > 0)
+  {
+    t= (double)getTickCount();
+  }
+
   // Save incoming image.
   cv_ptr = cv_bridge::toCvCopy(incoming_image, sensor_msgs::image_encodings::BGR8);
   // Check for valid image.
@@ -236,12 +252,11 @@ void webcamCallback(const sensor_msgs::Image::ConstPtr& incoming_image)
   right_line_world.push_back(ipm_object.IPM::image2Local(right_line_orig[0]));
   right_line_world.push_back(ipm_object.IPM::image2Local(right_line_orig[1]));
 
-
   ////
   //
   int scale=5;
   Mat visualise;
-  visualise=imread("/home/robin/catkin_ws/src/arc_lane_following_autopilot/topview.jpg");
+  visualise=imread("/home/nikhilesh/catkin_ws/src/arc_lane_following_autopilot/topview.jpg");
   //Point top left.
   Point2f draw_top_left((450-(left_line_world[1].y * 30)), (650-(left_line_world[1].x *30)));
   cout << "Grösse vom Bild " << visualise.cols << " " << visualise.rows << endl;
@@ -284,7 +299,7 @@ void webcamCallback(const sensor_msgs::Image::ConstPtr& incoming_image)
   if (draw_left && draw_right)
   {
     line(visualise, draw_bottom_right_desired, draw_bottom_left_desired, Scalar(0, 255, 0), 2);
-    arrowedLine(visualise, Point(450, 590), Point(450, 490), Scalar(0, 255, 0), 2);
+    //arrowedLine(visualise, Point(450, 590), Point(450, 490), Scalar(0, 255, 0), 2);
     //Write the relative error. 
     float draw_distance = draw_x_right_desired_bottom - draw_x_left_desired_bottom;
     float draw_rel_error_right = (draw_x_right_desired_bottom-450)/draw_distance;
@@ -301,8 +316,8 @@ void webcamCallback(const sensor_msgs::Image::ConstPtr& incoming_image)
   //Draw the coordinate system;
   int draw_origin_cs_x=500+30;
   int draw_origin_cs_y=733-56;
-  arrowedLine(visualise, Point(draw_origin_cs_x, draw_origin_cs_y), Point(draw_origin_cs_x, draw_origin_cs_y-15), Scalar(0,0, 255), 2);
-  arrowedLine(visualise, Point(draw_origin_cs_x,draw_origin_cs_y), Point(draw_origin_cs_x-15, draw_origin_cs_y), Scalar(0, 0, 255), 2);
+  //arrowedLine(visualise, Point(draw_origin_cs_x, draw_origin_cs_y), Point(draw_origin_cs_x, draw_origin_cs_y-15), Scalar(0,0, 255), 2);
+  //arrowedLine(visualise, Point(draw_origin_cs_x,draw_origin_cs_y), Point(draw_origin_cs_x-15, draw_origin_cs_y), Scalar(0, 0, 255), 2);
   putText(visualise, "x", Point(draw_origin_cs_x+5, draw_origin_cs_y-13), CV_FONT_HERSHEY_PLAIN, 1, Scalar(0, 0, 255), 2);
   putText(visualise, "y", Point(draw_origin_cs_x-15, draw_origin_cs_y+16), CV_FONT_HERSHEY_PLAIN, 1, Scalar(0, 0, 255), 2);
 
@@ -311,11 +326,15 @@ void webcamCallback(const sensor_msgs::Image::ConstPtr& incoming_image)
 
   showImage(visualise, "visalisierung");
   ////
-
-
+  
   lines.clear();
   left_line_orig.clear();
   right_line_orig.clear();
+  t = ((double)getTickCount() - t)/getTickFrequency();
+
+  t_vec.push_back(t);
+  std::cout<<"Duration: "<<t<<std::endl;
+
 }
 
 // New method to filter out the lines vector to find only two lines.
