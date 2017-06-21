@@ -1,5 +1,5 @@
 # ARC-Lane-Detector
-**Authors:** [Nikhilesh Alatur](), [Robin Deuber](), [J. M. M. Montiel]
+**Authors:** [Nikhilesh Alatur](), [Robin Deuber]()
 
 **Current version:** 1.0.0 
 
