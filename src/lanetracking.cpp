@@ -19,39 +19,46 @@ using namespace std;
 using namespace cv;
 
 // CONSTANTS:
-
-// Camera properties.
-float camera_height_m = 1.3;
-float pitch_angle_deg = 90.0;
-float focal_length_px;
-int input_width_px = 640;
-int input_height_px = 480;
-// Line Detection properties.
-Point2f roi_left_top(0, 250); 
-Point2f roi_right_bottom(640, 420);
+// Define parameters.
+float CAMERA_HEIGHT_M = 1.3;
+float PITCH_ANGLE_DEG = 90.0;
+float FOCAL_LENGTH_PX;
+int INPUT_WIDTH_PX = 640;
+int INPUT_HEIGHT_PX = 480;
+int X_ROI_LEFT_TOP = 0;
+int Y_ROI_LEFT_TOP = 250;
+int X_ROI_RIGHT_BOTTOM = 640;
+int Y_ROI_RIGHT_BOTTOM = 420;
+std::string ROS_TOPIC_IMAGE_NAME = "/usb_cam/image_raw";
+bool FLIPPING = false;
 
 // VARIABLES:
 IPM ipm_object;
 LineDetector ld_object;
 Mat source;
-bool flipping = true;
+Point2f roi_left_top(X_ROI_LEFT_TOP, Y_ROI_LEFT_TOP); 
+Point2f roi_right_bottom(X_ROI_RIGHT_BOTTOM, Y_ROI_RIGHT_BOTTOM);
+bool draw_left;
+bool draw_right;
 
 // Callback function for subscribing to webcam.
 void webcamCallback(const sensor_msgs::Image::ConstPtr& incoming_image);
+// Function to visualise the situation from a top view.
+void visualiseTopView(vector<Point2f> left_line_world, vector<Point2f> right_line_world);
+
 
 int main(int argc, char *argv[])
 {
+  // Initialize ROS Node.
+  ros::init(argc, argv, "Lane_Detector");
+  ros::NodeHandle n;
 
-	// Set parameters of LD and IPM objects.
-  	ipm_object.IPM::setParam(camera_height_m, pitch_angle_deg, focal_length_px, input_width_px, input_height_px);
- 	  ld_object.LineDetector::setParams(roi_left_top, roi_right_bottom);
+  // Set parameters of LD and IPM objects.
+  ipm_object.IPM::setParam(CAMERA_HEIGHT_M, PITCH_ANGLE_DEG, FOCAL_LENGTH_PX, INPUT_WIDTH_PX, INPUT_HEIGHT_PX);
+ 	ld_object.LineDetector::setParams(roi_left_top, roi_right_bottom);
 
-  	// Initialize ROS Node.
-  	ros::init(argc, argv, "Lane_Detector");
-  	ros::NodeHandle n;
-
-  	// Declare callback function to get Webcam image.
- 	ros::Subscriber sub = n.subscribe("/usb_cam/image_raw", 10, webcamCallback);
+  // Declare callback function to get Webcam image.
+ 	ros::Subscriber sub = n.subscribe(ROS_TOPIC_IMAGE_NAME, 10, webcamCallback);
 
  	// Run the callback functions.
  	ros::spin();
@@ -73,7 +80,7 @@ void webcamCallback(const sensor_msgs::Image::ConstPtr& incoming_image)
       std::cout<<"Got bad image from webcam!"<<std::endl;
   	}
   	// Flip (if needed) and save the image to global variable.
-  	if(flipping)
+  	if(FLIPPING)
   	{
   		cv::flip(cv_ptr->image, source, -1);
   	}
@@ -88,6 +95,7 @@ void webcamCallback(const sensor_msgs::Image::ConstPtr& incoming_image)
     // Get the coordinates (LB, LT, RB, RT) of the two lines.
     vector<Point2f> line_points = ld_object.LineDetector::getLineCoordinates();
 
+
     // Transform the line coordinates using the IPM object.
     vector<Point2f> left_line_world;
     vector<Point2f> right_line_world;
@@ -95,11 +103,31 @@ void webcamCallback(const sensor_msgs::Image::ConstPtr& incoming_image)
     left_line_world.push_back(ipm_object.IPM::image2Local(line_points[1]));
     right_line_world.push_back(ipm_object.IPM::image2Local(line_points[2]));
     right_line_world.push_back(ipm_object.IPM::image2Local(line_points[3]));
+    if((line_points[0].x == -1) && (line_points[0].y == -1) && (line_points[1].x == -1) && (line_points[1].y == -1))
+    {
+      draw_left = false;
+    }
+    else
+    {
+      std::cout<<"LOL1"<<std::endl;
+      draw_left = true;
+    }
+    if((line_points[2].x == -1) && (line_points[2].y == -1) && (line_points[3].x == -1) && (line_points[3].y == -1))
+    {
+      draw_right = false;
+    }
+    else
+    {
+
+      std::cout<<"LOL2"<<std::endl;
+      draw_right = true;
+    }
 
     // Visualise the lines.
     visualiseTopView(left_line_world, right_line_world);
 }
 
+// Function to visualise the situation from a top view.
 void visualiseTopView(vector<Point2f> left_line_world, vector<Point2f> right_line_world)
 {
   int scale = 5;
