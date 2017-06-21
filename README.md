@@ -19,7 +19,7 @@ We use [OpenCV](http://opencv.org) to manipulate images and features. Dowload an
 ## ROS 
 
 ## ARC-Lane-Tracking Tools
-We developed a library with different tools for running the lane detector algorithm in this repository. The tools include: Inverse Perspective Mapping, Line Detector, RANSAC polynomial fitting.
+We developed a library with different tools for running the lane detector algorithm in this repository. The tools include: Inverse Perspective Mapping, Line Detector, RANSAC polynomial fitting. The Lane-Tracking-Tools repository has to be in the same folder as the Lane-Detector Repository.
 
 #3. Installation
 
