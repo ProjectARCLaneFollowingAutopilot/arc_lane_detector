@@ -1,11 +1,3 @@
-/* This is the final executable for running lane tracking:
-1. Initialise everything: LD-object, IPM-object, RANSAC-object,... 
-2. Subscribe to webcam.
-3. Using LD-Class, get many lines.
-4. Filter out to only find two lines.
-5. Find points around line and run RANSAC.
-6. Using IPM, transform found polynomial from RANSAC.
-*/
 #include <cv.h>
 #include <cv_bridge/cv_bridge.h>
 #include <iostream>
@@ -30,7 +22,7 @@ int Y_ROI_LEFT_TOP = 250;
 int X_ROI_RIGHT_BOTTOM = 640;
 int Y_ROI_RIGHT_BOTTOM = 420;
 std::string ROS_TOPIC_IMAGE_NAME = "/usb_cam/image_raw";
-bool FLIPPING = false;
+bool FLIPPING = true;
 
 // VARIABLES:
 IPM ipm_object;
@@ -68,7 +60,6 @@ int main(int argc, char *argv[])
 
 void webcamCallback(const sensor_msgs::Image::ConstPtr& incoming_image)
 {
-  // NOCH NICHT GEMACHT: Clear things up for new iteration.
 	// Fetch image.
 	// Pointer to copy the converted sensor message to.
 	cv_bridge::CvImagePtr cv_ptr;
@@ -109,7 +100,6 @@ void webcamCallback(const sensor_msgs::Image::ConstPtr& incoming_image)
     }
     else
     {
-      std::cout<<"LOL1"<<std::endl;
       draw_left = true;
     }
     if((line_points[2].x == -1) && (line_points[2].y == -1) && (line_points[3].x == -1) && (line_points[3].y == -1))
@@ -118,8 +108,6 @@ void webcamCallback(const sensor_msgs::Image::ConstPtr& incoming_image)
     }
     else
     {
-
-      std::cout<<"LOL2"<<std::endl;
       draw_right = true;
     }
 
