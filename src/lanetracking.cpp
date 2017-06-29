@@ -163,7 +163,7 @@ void visualiseTopView(vector<Point2f> left_line_world, vector<Point2f> right_lin
   if (draw_left && draw_right)
   {
     line(visualise, draw_bottom_right_desired, draw_bottom_left_desired, Scalar(0, 255, 0), 2);
-    //arrowedLine(visualise, Point(450, 590), Point(450, 490), Scalar(0, 255, 0), 2);
+    arrowedLine(visualise, Point(450, 590), Point(450, 490), Scalar(0, 255, 0), 2);
     //Write the relative error. 
     float draw_distance = draw_x_right_desired_bottom - draw_x_left_desired_bottom;
     float draw_rel_error_right = (draw_x_right_desired_bottom-450)/draw_distance;
@@ -180,8 +180,8 @@ void visualiseTopView(vector<Point2f> left_line_world, vector<Point2f> right_lin
   //Draw the coordinate system;
   int draw_origin_cs_x = 500+30;
   int draw_origin_cs_y = 733-56;
-  //arrowedLine(visualise, Point(draw_origin_cs_x, draw_origin_cs_y), Point(draw_origin_cs_x, draw_origin_cs_y-15), Scalar(0,0, 255), 2);
-  //arrowedLine(visualise, Point(draw_origin_cs_x,draw_origin_cs_y), Point(draw_origin_cs_x-15, draw_origin_cs_y), Scalar(0, 0, 255), 2);
+  arrowedLine(visualise, Point(draw_origin_cs_x, draw_origin_cs_y), Point(draw_origin_cs_x, draw_origin_cs_y-15), Scalar(0,0, 255), 2);
+  arrowedLine(visualise, Point(draw_origin_cs_x,draw_origin_cs_y), Point(draw_origin_cs_x-15, draw_origin_cs_y), Scalar(0, 0, 255), 2);
   putText(visualise, "x", Point(draw_origin_cs_x+5, draw_origin_cs_y-13), CV_FONT_HERSHEY_PLAIN, 1, Scalar(0, 0, 255), 2);
   putText(visualise, "y", Point(draw_origin_cs_x-15, draw_origin_cs_y+16), CV_FONT_HERSHEY_PLAIN, 1, Scalar(0, 0, 255), 2);
   imshow("visalisierung", visualise);
